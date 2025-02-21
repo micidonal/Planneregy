@@ -2,6 +2,7 @@
   "expo": {
     "name": "Planneregy",
     "slug": "Planneregy",
+    "owner": "kmcdonald",
     "scheme": "planneregy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,11 +20,11 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.umich.planneregy",
-      "buildNumber": "1.0.3",
-      "config": {
-        "googleSignIn": {
-          "reservedClientId": "com.googleusercontent.apps.695321657776-nqkqqcaib5rfa0peh2jdn60gopc8aon6"
+      "bundleIdentifier":"com.umich.planneregy",
+      "buildNumber":"1.0.3",
+      "config":{
+        "googleSignIn":{
+          "reservedClientId":"com.googleusercontent.apps.695321657776-nqkqqcaib5rfa0peh2jdn60gopc8aon6"
         }
       }
     },
@@ -35,11 +36,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "b92fdeb7-4f37-437f-9194-2ea0031e8966"
-      }
     }
   }
 }

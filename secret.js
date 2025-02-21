@@ -1,11 +1,11 @@
 export const firebaseConfig = {
-	apiKey: "AIzaSyA7vTjFybCLwckhec5R39i9DljhCde0vKI",
-	authDomain: "repstudy4605.firebaseapp.com",
-	projectId: "repstudy4605",
-	storageBucket: "repstudy4605.firebasestorage.app",
-	messagingSenderId: "489414830947",
-	appId: "1:489414830947:web:b8d42d09bbd876f6be0156",
-	measurementId: "G-RRXQCYPMBJ"
+	apiKey: "AIzaSyD63Cw6tNu2PqOBNozA5ycdE0UXHtw1PWY",
+	authDomain: "repstudylink4605.firebaseapp.com",
+	projectId: "repstudylink4605",
+	storageBucket: "repstudylink4605.firebasestorage.app",
+	messagingSenderId: "834998760211",
+	appId: "1:834998760211:web:a943333d9ae012af4160e6",
+	measurementId: "G-VNCPQK3R3D"
   };
 
 export const googleLoginConfig = {
@@ -18,7 +18,7 @@ export const googleLoginConfig = {
 	expoClientId:
 		"695321657776-bqd25a8tin38pc7kso7qaagkpusbgna0.apps.googleusercontent.com",
 	iosClientId:
-		"695321657776-nqkqqcaib5rfa0peh2jdn60gopc8aon6.apps.googleusercontent.com",
+		"834998760211-or7c2iqlj9k6pacej4f1cllgfakotq38.apps.googleusercontent.com",
 	scopes: [
 		"https://www.googleapis.com/auth/userinfo.email",
 		"https://www.googleapis.com/auth/userinfo.profile",
