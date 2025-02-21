@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Planneregy",
+    "slug": "Planneregy",
+    "owner": "kmcdonald",
+    "scheme": "planneregy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/svg/logo_Planneregy.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier":"com.umich.planneregy",
+      "buildNumber":"1.0.3",
+      "config":{
+        "googleSignIn":{
+          "reservedClientId":"com.googleusercontent.apps.695321657776-nqkqqcaib5rfa0peh2jdn60gopc8aon6"
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
