@@ -9,14 +9,8 @@ export const firebaseConfig = {
   };
 
 export const googleLoginConfig = {
-	//   iosStandaloneAppClientId:
-	//     "858218224278-0d4utg27sf6mkdm5ohe9un0kmn1jt2se.apps.googleusercontent.com",
-	//   iosClientId:
-	//     "695321657776-nqkqqcaib5rfa0peh2jdn60gopc8aon6.apps.googleusercontent.com",
-	//   expoClientId:
-	//     "734078016442-rs8o5titja31ne113sl1s8nhsftfi1f9.apps.googleusercontent.com",
 	expoClientId:
-		"695321657776-bqd25a8tin38pc7kso7qaagkpusbgna0.apps.googleusercontent.com",
+		"834998760211-4t2doc9301k4ems2vuprinl1s0ntb659.apps.googleusercontent.com",
 	iosClientId:
 		"834998760211-or7c2iqlj9k6pacej4f1cllgfakotq38.apps.googleusercontent.com",
 	scopes: [
@@ -27,4 +21,4 @@ export const googleLoginConfig = {
 	prompt: "select_account",
 };
 
-export const WEATHER_API_KEY = "abbee2b48a0b745a46df80d5bb34cff5";
+export const WEATHER_API_KEY = "e01bf2be2e62fee1543c81a348437636";
