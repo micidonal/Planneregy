@@ -46,7 +46,7 @@ class DataModel {
   createNewUser = async (username) => {
     let newUser = { email: username };
     let newUsersDocRef = await addDoc(this.usersRef, newUser);
-    let key = newUserDocsRef.id;
+    let key = newUsersDocRef.id;
     
     await updateDoc(doc(this.db, "users", key), { id: key });
     let testColl = {
