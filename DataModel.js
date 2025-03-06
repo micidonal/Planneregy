@@ -3,9 +3,16 @@ import moment, { min } from "moment";
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  getDocs, 
+  query, 
+  limit } from "firebase/firestore";
 import { firebaseConfig } from "./secret";
-import * as Notification from "expo-notifications";
+import * as Notifications from "expo-notifications";
 
 class DataModel {
   constructor() {
@@ -37,18 +44,18 @@ class DataModel {
 
   //Create new user and create default activities
   createNewUser = async (username) => {
-    let newUser = {
-      email: username,
-    };
-    let newUsersDocRef = await this.usersRef.add(newUser);
-    let key = newUsersDocRef.id;
-    await this.usersRef.doc(key).update({ id: key });
+    let newUser = { email: username };
+    let newUsersDocRef = await addDoc(this.usersRef, newUser);
+    let key = newUserDocsRef.id;
+    
+    await updateDoc(doc(this.db, "users", key), { id: key });
     let testColl = {
       test: 1,
     };
-    let newUserColl = await newUsersDocRef.collection("activity_plans");
-    let newUserStrategyColl = await newUsersDocRef.collection("my_strategies");
-    await newUserColl.add(testColl);
+    //let newUserColl = await newUsersDocRef.collection("activity_plans");
+    //let newUserStrategyColl = await newUsersDocRef.collection("my_strategies");
+    //await newUserColl.add(testColl);
+    await addDoc(collection(newUserDocRef, "activity_plans"), testColl);
 
     let userActivityList = {
       activityList: [
@@ -59,19 +66,20 @@ class DataModel {
         "Jumping Rope",
       ],
     };
-    let activityList = await this.usersRef.doc(key).collection("my_activities");
-
-    await activityList.add(userActivityList);
+    //let activityList = await this.usersRef.doc(key).collection("my_activities");
+    //await activityList.add(userActivityList);
+    await addDoc(collection(newUserDocRef, "my_activities"), userActivityList);
 
     this.key = key;
   };
   //Get user-defined activity types
   getUserActivities = async (key) => {
     console.log("getUserActivities");
-    let activityQuerySnap = await this.usersRef
+    /*let activityQuerySnap = await this.usersRef
       .doc(key)
       .collection("my_activities")
-      .get();
+      .get();*/
+    let activityQuerySnap = await getDocs(collection(this.db, "users", key, "my_activities"));
     let userActivityList = [];
 
     activityQuerySnap.forEach((qDocSnap) => {
@@ -83,63 +91,56 @@ class DataModel {
   };
   //Load users' self-created plans
   loadUserPlans = async (key) => {
-    let userPlanCollection = await this.usersRef
-      .doc(key)
-      .collection("activity_plans")
-      .get();
-    userPlanCollection.forEach(async (qDocSnap) => {
-      let key = qDocSnap.id;
+    let userPlanCollection = collection(this.db, "users", key, "activity_plans");
+    let querySnapshot = await getDocs(userPlanCollection);
+
+    querySnapshot.forEach((qDocSnap) => {
       let plan = qDocSnap.data();
-      plan.key = key;
+      plan.key = qDocSnap.id;
       this.plans.push(plan);
     });
   };
   getActivityKey = async(key, onReportActivity) => {
     let activityKey;
-    let userPlanCollection = await this.usersRef
-    .doc(key)
-    .collection("activity_plans")
-    .get();
-    userPlanCollection.forEach(async (qDocSnap) => {
+    let userPlanCollection = collection(this.db, "users", key, "activity_plans");
+    let querySnapshot = await getDocs(userPlanCollection);
 
+    for (let qDocSnap of querySnapshot.docs) {
       if (qDocSnap.data().key === onReportActivity.key) {
-        console.log(qDocSnap.data());
         activityKey = qDocSnap.id;
+        break;
       }
-    });
+    }
     return activityKey;
-  }
+  };
   loadUserStrategies = async (key) => {
     this.strategies = [];
-    let UserStrategyCollection = await this.usersRef
-      .doc(key)
-      .collection("my_strategies")
-      .get();
-    UserStrategyCollection.forEach(async (qDocSnap) => {
-      let key = qDocSnap.id;
+    let userStrategyCollection = collection(this.db, "users", key, "my_strategies");
+    let querySnapshot = await getDocs(userStrategyCollection);
+
+    querySnapshot.forEach((qDocSnap) => {
       let strategy = qDocSnap.data();
-      strategy.key = key;
+      strategy.key = qDocSnap.id;
       this.strategies.push(strategy);
     });
   };
   //Update the weather list to Firebase
   updateWeatherInfo = async (key, fullWeatherList) => {
-    let weatherList = await this.usersRef
-      .doc(key)
-      .collection("weather_records");
+    let weatherListRef = collection(this.db, "users", key, "weather_records");
+
     for (let weather of fullWeatherList) {
-      await weatherList.add(weather);
+      await addDoc(weatherListRef, weather);
     }
   };
   //Check if the user defined activity list exist
   isUserDefineActivitiesExist = async (key) => {
-    let userDefineActivities = await this.usersRef
-      .doc(key)
-      .collection("my_activities")
-      .limit(1)
-      .get();
-
-    return userDefineActivities.empty;
+    let userDefineActivitiesQuery = query(
+      collection(this.db, "users", key, "my_activities"),
+      limit(1)
+    );
+    let querySnapshot = await getDocs(userDefineActivitiesQuery);
+  
+    return querySnapshot.empty;
   };
   //Create default activities
   createUserActivities = async (key) => {
@@ -152,20 +153,17 @@ class DataModel {
         "Jumping Rope",
       ],
     };
-    let activityList = await this.usersRef.doc(key).collection("my_activities");
+    let activityList = collection(this.db, "users", key, "my_activities");
     // for (let activity of userActivityList) {
     //   await activityList.add(activity);
     // }
-    await activityList.add(userActivityList);
+    await addDoc(activityListRef, userActivityList);
   };
   //Update user-defined activity list with new activity
   updateUserActivities = async (key, activity) => {
     console.log("key", key);
     console.log("activity", activity);
-    let activityQuerySnap = await this.usersRef
-      .doc(key)
-      .collection("my_activities")
-      .get();
+    let activityQuerySnap = await getDocs(collection(this.db, "users", key, "my_activities"));
     let docKey;
     let userActivityList = [];
     activityQuerySnap.forEach((qDocSnap) => {
@@ -173,25 +171,20 @@ class DataModel {
       let data = qDocSnap.data();
       userActivityList.push(data);
     });
-    userActivityList[0].activityList.push(activity);
-    let updatedList = {
-      activityList: userActivityList[0].activityList,
-    };
-    //console.log("updatedList", updatedList);
-    //console.log("docKey", docKey);
-    await this.usersRef
-      .doc(key)
-      .collection("my_activities")
-      .doc(docKey)
-      .update(updatedList);
+    if (userActivityList.length > 0) {
+      userActivityList[0].activityList.push(activity);
+      let updatedList = { activityList: userActivityList[0].activityList };
+  
+      await updateDoc(doc(this.db, "users", key, "my_activities", docKey), updatedList);
+    }
   };
   //Ask user's permission to push notifications
   askPermission = async () => {
-    const perms = await Notification.getPermissionsAsync();
+    const perms = await Notifications.getPermissionsAsync();
     let granted = perms.granted;
     console.log("tried to get permissions", perms);
     if (!granted) {
-      const newPerms = await Notification.requestPermissionsAsync();
+      const newPerms = await Notifications.requestPermissionsAsync();
       granted = newPerms.granted;
     }
     return granted;
@@ -200,11 +193,10 @@ class DataModel {
   createDailyNotifications = async () => {
     let startDate = new Date();
     for (let i = 0; i <= 7; i++) {
-      let nextDate = startDate.setDate(startDate.getDate() + 1);
-      let trigger = new Date(
-        Date.parse(moment(nextDate).format().slice(0, 11) + "20:00:00")
-      );
-      await Notification.scheduleNotificationAsync({
+      let nextDate = new Date(startDate);
+      nextDate.setDate(nextDate.getDate() + i);
+      let trigger = new Date(moment(nextDate).format("YYYY-MM-DD") + "T20:00:00");
+      await Notifications.scheduleNotificationAsync({
         content: {
           title: "How's everything going",
           body: "Take some time to report you day!",
@@ -224,7 +216,7 @@ class DataModel {
     //let secTrigger = new Date(Date.parse(startTime) + 7 * 1000);
     console.log("trigger", trigger);
 
-    let identifier = await Notification.scheduleNotificationAsync({
+    let identifier = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Upcoming Physical Activity",
         body: newEvent.title + " is about to happen in an hour",
@@ -237,11 +229,11 @@ class DataModel {
   };
   //Schedule report notification when here is a plan: remind users at 21:00
   scheduleReportNotification = async (newEvent) => {
-    let reportStartTime = newEvent.start.slice(0, 11) + "21:00:00";
+    let reportStartTime = newEvent.start.slice(0, 10) + "T21:00:00";
     //console.log("reportStartTime", reportStartTime);
     let trigger = new Date(Date.parse(reportStartTime));
     //console.log("reportTrigger", reportTrigger);
-    let identifier = await Notification.scheduleNotificationAsync({
+    let identifier = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Take some time to report your activity",
         body: "What is your experience with " + newEvent.title,
@@ -257,33 +249,25 @@ class DataModel {
     //newEvent.reminderKey = await this.scheduleNotification(newEvent);
     //newEvent.reportReminderKey = await this.scheduleReportNotification(newEvent);
     // console.log("data modal",newEvent);
-    let userPlanCollection = await this.usersRef
-      .doc(key)
-      .collection("activity_plans")
-      .add(newEvent);
+    let userPlanCollection = collection(this.db, "users", key, "activity_plans");
+    await addDoc(userPlanCollection, newEvent);
   };
   //Update the specified plan
   updatePlan = async (userKey, newEvent) => {
-    let newEventRef = this.usersRef
-      .doc(userKey)
-      .collection("activity_plans")
-      .doc(newEvent.key);
-    newEventRef.update(newEvent);
+    const newEventRef = doc(this.db, "users", userKey, "activity_plans", newEvent.key);
+    await updateDoc(newEventRef, newEvent);
   };
   //Update the specified strategy
   updateStrategy = async (userKey, newStrategy) => {
-    let newStrategyRef = this.usersRef
-      .doc(userKey)
-      .collection("my_strategies")
-      .doc(newStrategy.key);
-      newStrategyRef.update(newStrategy);
+    const newStrategyRef = doc(this.db, "users", userKey, "my_strategies", newStrategy.key);
+    await updateDoc(newStrategyRef, newStrategy);
   };
   //Cancel reminders associated with the deleted event
   deleteReminders = async (newEvent) => {
-    await Notification.cancelScheduledNotificationAsync(
+    await Notifications.cancelScheduledNotificationAsync(
       newEvent.activityReminderKey
     );
-    await Notification.cancelScheduledNotificationAsync(
+    await Notifications.cancelScheduledNotificationAsync(
       newEvent.reportReminderKey
     );
   };
@@ -300,10 +284,8 @@ class DataModel {
   // };
 
   addToUserDefinedPlanStrategyList = async (key, newStrategy) => {
-    let userDefinedPlanStrategyList = await this.usersRef
-      .doc(key)
-      .collection("my_strategies")
-      .add(newStrategy);
+    const userDefinedPlanStrategyListRef = collection(this.db, "users", key, "my_strategies");
+    await addDoc(userDefinedPlanStrategyListRef, newStrategy);
   };
 
   getUserKey = () => {
