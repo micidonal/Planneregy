@@ -30,7 +30,7 @@ export function Login({ navigation }) {
       //console.log("auth",auth);
       // console.log("dataModel.isLogin",dataModel.isLogin);
       let userInfoResponse = await fetch(
-        "https://www.googleapis.com/userinfo/v2/me",
+        "https://www.googleapis.com/oauth2/v3/userinfo",
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
