@@ -8,9 +8,8 @@ import { PlanOnCalendar } from "./PlanOnCalendar";
 import { BeforeLoginScreen } from "./BeforeLoginScreen";
 import { TrackingPage } from "./TrackingPage";
 import * as Font from "expo-font";
-import RobotoBold from "./assets/fonts/Roboto-Bold.ttf";
 
-console.log(RobotoBold);
+console.log("In App.js...");
 
 const Stack = createNativeStackNavigator();
 
@@ -27,7 +26,7 @@ export default class App extends React.Component {
     console.log("Starting font load...");
     try {
       await Font.loadAsync({
-        "RobotoBoldBold": RobotoBold,
+        "RobotoBoldBold": require("./assets/fonts/Roboto-Bold.ttf"),
         "RobotoBoldBlack": require("./assets/fonts/Roboto-Black.ttf"),
         "RobotoBlackItalic": require("./assets/fonts/Roboto-BlackItalic.ttf"),
         "RobotoRegular": require("./assets/fonts/Roboto-Regular.ttf"),

@@ -44,8 +44,8 @@ export class BeforeLoginScreen extends React.Component {
 
   async loadFonts() {
     await Font.loadAsync({
-      RobotoBoldBlack: require("./assets/fonts/Roboto/Roboto-Black.ttf"),
-      RobotoBoldItalic: require("./assets/fonts/Roboto/Roboto-BlackItalic.ttf"),
+      RobotoBoldBlack: require("./assets/fonts/Roboto-Black.ttf"),
+      RobotoBoldItalic: require("./assets/fonts/Roboto-BlackItalic.ttf"),
     });
     this.setState({ fontsLoaded: true });
   }
