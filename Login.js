@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Platform, View, Text, TouchableOpacity } from "react-native";
 import { Checkbox, Colors, Button } from "react-native-ui-lib";
 import { getDataModel } from "./DataModel";
 import { googleLoginConfig } from "./secret";

@@ -22,11 +22,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.muc.planneregy",
       "buildNumber": "1.0.0",
-      "config": {
-        "googleSignIn": {
-          "reservedClientId": "834998760211-4t2doc9301k4ems2vuprinl1s0ntb659.apps.googleusercontent.com"
-        }
-      },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
