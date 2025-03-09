@@ -23,11 +23,11 @@ class DataModel {
 
     this.usersRef = collection(this.db, "users");
 
+    this.asyncInit();
+
     this.key = "";
     this.plans = [];
     this.strategies = [];
-
-    this.asyncInit();
   }
   //init firebase
   asyncInit = async () => {

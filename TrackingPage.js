@@ -59,7 +59,7 @@ import * as Progress from "react-native-progress";
 import SwitchSelector from "react-native-switch-selector";
 
 //Load layout component libraries
-import ChipsList from "react-native-expandable-chips-list";
+// import ChipsList from "react-native-expandable-chips-list";
 import SelectableChips from "react-native-chip/SelectableChips";
 import RemovableChips from "react-native-chip/RemovableChips";
 import Onboarding from "react-native-onboarding-swiper";

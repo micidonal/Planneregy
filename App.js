@@ -8,6 +8,9 @@ import { PlanOnCalendar } from "./PlanOnCalendar";
 import { BeforeLoginScreen } from "./BeforeLoginScreen";
 import { TrackingPage } from "./TrackingPage";
 import * as Font from "expo-font";
+import RobotoBold from "./assets/fonts/Roboto-Bold.ttf";
+
+console.log(RobotoBold);
 
 const Stack = createNativeStackNavigator();
 
@@ -21,16 +24,23 @@ export default class App extends React.Component {
   }
 
   async loadFonts() {
-    await Font.loadAsync({
-      RobotoBoldBold: require("./assets/fonts/Roboto/Roboto-Bold.ttf"),
-      RobotoBoldBlack: require("./assets/fonts/Roboto/Roboto-Black.ttf"),
-      RobotoBoldItalic: require("./assets/fonts/Roboto/Roboto-BlackItalic.ttf"),
-      RobotoRegular: require("./assets/fonts/Roboto/Roboto-Regular.ttf"),
-    });
-    this.setState({ fontsLoaded: true });
+    console.log("Starting font load...");
+    try {
+      await Font.loadAsync({
+        "RobotoBoldBold": RobotoBold,
+        "RobotoBoldBlack": require("./assets/fonts/Roboto-Black.ttf"),
+        "RobotoBlackItalic": require("./assets/fonts/Roboto-BlackItalic.ttf"),
+        "RobotoRegular": require("./assets/fonts/Roboto-Regular.ttf"),
+      });
+      console.log("Fonts loaded successfully!");
+      this.setState({ fontsLoaded: true });
+    } catch (error) {
+      console.error("Font loading error:", error);
+    }
   }
 
   componentDidMount() {
+    console.log("Component did mount!");
     this.loadFonts();
   }
 
@@ -48,7 +58,7 @@ export default class App extends React.Component {
       headerTitleStyle: {
         fontWeight: "bold",
         color: "black",
-        fontFamily: "RobotoBoldItalic",
+        fontFamily: "RobotoBlackItalic",
       },
     };
     return headerStyle;
