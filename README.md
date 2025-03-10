@@ -9,7 +9,7 @@
 **Need To Do**
  - Test the code using Expo ('expo start' or 'npx expo start' depending on imports to local machine) and your iPhone (download ExpoGo from AppStore)
     - Makes it through App.js, Login.js, OnBoardingScreen.js, DataModel.js, BeforeLoginScreen.js
-    - Gets to Calendar.js/PlanOnCalendar.js and breaks, the code is Calendar.js specifically is awful, lots of issues, can't seem to figure it out
+    - Gets to Calendar.js/PlanOnCalendar.js and breaks, the code in Calendar.js specifically is awful, lots of issues, can't seem to figure it out
   
 # How to Test
  - Clone this repo locally
@@ -24,7 +24,7 @@
     - Hit "Authorize APIs"
     - In Step 2, hit "Exchange authorization code for tokens"
     - Copy the token in the Access token box and paste it in Login.js for "const tempToken"
-       - This value expires every hours, so don't forget to refresh it and reassign it every hour
+       - This value expires every hour, so don't forget to refresh it and reassign it every hour
  - Now, in the CLI run "npm install --legacy-peer-deps"
  - Next, in the CLI run "npx expo start --clear --tunnel" (--clear is optional, --tunnel required for ExpoGo testing)
  - If asked, press 'y' for the use of a port
