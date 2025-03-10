@@ -63,6 +63,8 @@ import { generalStyles } from "./styles/GeneralStyling";
 
 // import Swiper from "react-native-swiper";
 
+console.log("In PlanOnCalendar.js...");
+
 let TEST_DATA = [
   "Light Exercise",
   "Moderate Exercise",

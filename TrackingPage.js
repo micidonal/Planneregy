@@ -76,6 +76,8 @@ import { getDataModel } from "./DataModel";
 import { generalStyles } from "./styles/GeneralStyling";
 import { timing } from "react-native-reanimated";
 
+console.log("In TrackingPage.js...");
+
 Array.prototype.move = function (from, to) {
 	this.splice(to, 0, this.splice(from, 1)[0]);
 };

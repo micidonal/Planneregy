@@ -27,6 +27,8 @@ const HIGHLIGHT_COLOR = "white";
 const BLUE = "#579AFF";
 const LIGHTBLUE = "#1AB700";
 
+console.log("In Calendar.js...");
+
 export class MonthCalendar extends React.Component {
   constructor(props) {
     // console.log("change detected");

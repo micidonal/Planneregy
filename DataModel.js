@@ -7,12 +7,15 @@ import { getFirestore,
   collection, 
   doc, 
   addDoc, 
-  updateDoc, 
+  updateDoc,
+  setDoc, 
   getDocs, 
   query, 
   limit } from "firebase/firestore";
 import { firebaseConfig } from "./secret";
 import * as Notifications from "expo-notifications";
+
+console.log("In DataModel.js...");
 
 class DataModel {
   constructor() {
@@ -46,16 +49,33 @@ class DataModel {
   createNewUser = async (username) => {
     let newUser = { email: username };
     let newUsersDocRef = await addDoc(this.usersRef, newUser);
+
+    console.log("New User Doc Ref:", newUsersDocRef.path);
+
     let key = newUsersDocRef.id;
+
+    console.log("New Key:", key);
+
+    console.log("Database reference: ", this.db);
     
-    await updateDoc(doc(this.db, "users", key), { id: key });
+    // await updateDoc(doc(this.db, "users", key), { id: key });
+    try {
+      await setDoc(doc(this.db, "users", key), { id: key }, { merge: true });
+      console.log("Successful setDoc!");
+    } catch (error) {
+      console.error("Error in setDoc:", error);
+    }
+
     let testColl = {
       test: 1,
     };
+
     //let newUserColl = await newUsersDocRef.collection("activity_plans");
     //let newUserStrategyColl = await newUsersDocRef.collection("my_strategies");
     //await newUserColl.add(testColl);
-    await addDoc(collection(newUserDocRef, "activity_plans"), testColl);
+    await addDoc(collection(newUsersDocRef, "activity_plans"), testColl);
+
+    console.log("Successful addDoc!");
 
     let userActivityList = {
       activityList: [
@@ -68,9 +88,14 @@ class DataModel {
     };
     //let activityList = await this.usersRef.doc(key).collection("my_activities");
     //await activityList.add(userActivityList);
-    await addDoc(collection(newUserDocRef, "my_activities"), userActivityList);
+    await addDoc(collection(newUsersDocRef, "my_activities"), userActivityList);
+
+    console.log("Before setting this.key, this = ", this);
 
     this.key = key;
+    console.log("Successful New User Created!");
+
+    return key;
   };
   //Get user-defined activity types
   getUserActivities = async (key) => {
@@ -304,6 +329,7 @@ let theDataModel = undefined;
 export function getDataModel() {
   if (!theDataModel) {
     theDataModel = new DataModel();
+    console.log("New DataModel Created!");
   }
   return theDataModel;
 }

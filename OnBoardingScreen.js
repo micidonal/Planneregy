@@ -4,6 +4,8 @@ import Onboarding from "react-native-onboarding-swiper";
 import Boarding from "./assets/svg/boarding.svg";
 import * as Font from "expo-font";
 
+console.log("In OnBoarding.js...");
+
 
 export class OnboardingScreen extends React.Component {
   state = {

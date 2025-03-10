@@ -11,6 +11,8 @@ import { getDataModel } from "./DataModel";
 import * as Location from "expo-location";
 import { WEATHER_API_KEY } from "./secret";
 
+console.log("In BeforeLoginScreen.js...");
+
 export class BeforeLoginScreen extends React.Component {
   constructor(props) {
     super(props);
@@ -56,7 +58,7 @@ export class BeforeLoginScreen extends React.Component {
     let emailAddress = await SecureStore.getItemAsync("USER_EMAIL");
     let accessToken = await SecureStore.getItemAsync("ACCESS_TOKEN");
     let key = await SecureStore.getItemAsync("USER_KEY");
-    // console.log("key", key);
+    console.log("key", key);
     if (emailAddress) {
       //User already exist
       console.log("email address exist");
@@ -71,17 +73,27 @@ export class BeforeLoginScreen extends React.Component {
         dateMax
       );
 
-      let calendarEventListJSON = await calendarsEventList.json();
+      console.log("Getting Calendar JSON...");
+
+      let calendarEventListJSON = await calendarsEventList;
+
+      console.log("Calendar JSON Acquired!");
 
       //Process Google calendar events into list for calendar view
       let [previousMonthList, thisMonthList, nextMonthList, fullEventList] =
         this.processCalEvent(calendarEventListJSON.items);
+
+      console.log("Past Process Cal Event!");
+
       //Get user-defined activity types
       let userDefineActivitiesNotExist =
         await this.dataModel.isUserDefineActivitiesExist(key);
       if (userDefineActivitiesNotExist) {
         await this.dataModel.createUserActivities(key);
       }
+
+      console.log("Past User-Defined Activities!");
+
       this.setState({ dataType: "user activities" });
       let userActivityList = await this.dataModel.getUserActivities(key);
       // console.log("userActivityList",userActivityList);
@@ -261,18 +273,30 @@ export class BeforeLoginScreen extends React.Component {
     timeMin,
     timeMax
   ) => {
-    // console.log("calendarsID", calendarsID);
+    console.log("calendarsID", calendarsID);
+    console.log("access token: ", accessToken);
     let calendarsEventList;
-    calendarsEventList = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/" +
-        calendarsID +
-        "/events?" +
-        "singleEvents=true&" +
-        timeMax +
-        "&" +
-        timeMin,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    try {
+      const response = await fetch(
+        "https://www.googleapis.com/calendar/v3/calendars/" +
+          calendarsID +
+          "/events?" +
+          "singleEvents=true&" +
+          timeMax +
+          "&" +
+          timeMin,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+      }
+
+      calendarsEventList = await response.json();
+      console.log("Fetched calendar events:", calendarsEventList);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+    }
+
     return calendarsEventList;
   };
   // Get the date range for requesting Google Calendar events: default: last month, this month, next month
@@ -292,24 +316,30 @@ export class BeforeLoginScreen extends React.Component {
     let monthDays = moment(year + "-" + monthMax, "YYYY-MM").daysInMonth();
     let dateMax =
       "timeMax=" + year + "-" + monthMax + "-" + monthDays + "T23%3A00%3A00Z";
-    // console.log("dateMin, dateMax", dateMin, dateMax);
+    console.log("dateMin, dateMax", dateMin, dateMax);
     return [dateMin, dateMax];
   };
   // Process the calendar events into three lists: last month, this month, next month
   processCalEvent = (eventList) => {
+    console.log("Processing Cal Events!");
+
     let currMonth = moment().format("YYYY-MM");
     let nextMonth = moment().add(1, "months").format("YYYY-MM");
 
     let lastMonth = moment().subtract(1, "months").format("YYYY-MM");
-    //console.log(nextMonth,lastMonth);
+
+    console.log(nextMonth, lastMonth);
+
     let previousMonthList = [];
     let thisMonthList = [];
     let nextMonthList = [];
 
     let fullEventList = [];
 
+    console.log("event list: ", eventList);
+
     for (let dayEvent of eventList) {
-      //console.log("dayEvent.start ",dayEvent.start);
+      console.log("dayEvent.start: ", dayEvent.start);
       let timeStamp;
       if (dayEvent.start) {
         //console.log("dayEvent", dayEvent);
