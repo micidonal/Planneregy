@@ -16,6 +16,7 @@
  - Ensure you have expo/eas installed ("npm install -g expo-cli eas-cli")
  - Login to Expo with your account info (the one tied to cs-4605-team org with the planneregy project)
  - Before running, you *must* check Login.js for tempToken (Dev login workaround)
+    - **Note:** The Dev login workaround has mostly to due with just rough testing capabilities w/o App Store Connect, shouldn't be nearly as rough with it
     - Go to https://developers.google.com/oauthplayground/
     - Login Credentials:
        - Email: planneregyemailtest@gmail.com
