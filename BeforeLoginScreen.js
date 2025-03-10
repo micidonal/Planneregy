@@ -56,12 +56,13 @@ export class BeforeLoginScreen extends React.Component {
     // await this.setState({isLoaderVis:true});
     //Get local-stored user basic info
     let emailAddress = await SecureStore.getItemAsync("USER_EMAIL");
+    console.log("User Email: ", emailAddress);
     let accessToken = await SecureStore.getItemAsync("ACCESS_TOKEN");
+    console.log("User Token: ", accessToken);
     let key = await SecureStore.getItemAsync("USER_KEY");
-    console.log("key", key);
+    console.log("User Key: ", key);
+
     if (emailAddress) {
-      //User already exist
-      console.log("email address exist");
       //Get the date range
       let [dateMin, dateMax] = this.processDate();
       //Get users' Google calendar events
@@ -96,12 +97,12 @@ export class BeforeLoginScreen extends React.Component {
 
       this.setState({ dataType: "user activities" });
       let userActivityList = await this.dataModel.getUserActivities(key);
-      // console.log("userActivityList",userActivityList);
+      console.log("userActivityList: ", userActivityList);
       //Get user's plans made in the app
       await this.dataModel.loadUserPlans(key);
       let userPlans = [];
       userPlans = this.dataModel.getUserPlans();
-      // console.log("userPlans",userPlans);
+      console.log("userPlans: ", userPlans);
 
       await this.dataModel.loadUserStrategies(key);
       let userStrategies = this.dataModel.getUserStrategies();
@@ -192,6 +193,7 @@ export class BeforeLoginScreen extends React.Component {
           // await this.dataModel.updateWeatherInfo(key, weatherFullList);
         }
       } else {
+        console.log("recordEndDate is Null!");
         navToScreen = "PlanOnCalendar";
         this.setState({ dataType: "weather" });
         [lastMonthWeather, thisMonthWeather, nextMonthWeather] =
@@ -214,8 +216,10 @@ export class BeforeLoginScreen extends React.Component {
           newWeather.month = todayDate.getMonth() + 1;
           weatherFullList.push(newWeather);
         }
+        console.log(weatherFullList);
         console.log("weather processed");
         await this.dataModel.updateWeatherInfo(key, weatherFullList);
+        console.log("weather info updated!");
       }
 
       //Get weather info from OpenWeather API and it into three lists: lastMonthWeather, thisMonthWeather, nextMonthWeather
@@ -244,6 +248,7 @@ export class BeforeLoginScreen extends React.Component {
 
       // console.log("userActivityList[0].activityList",userActivityList[0].activityList);
 
+      console.log("Jumping from BeforeLoginScreen.js to ", navToScreen);
       await this.setState({ isLoaderVis: false });
       this.props.navigation.navigate(navToScreen, {
         userEmail: emailAddress,
@@ -388,12 +393,15 @@ export class BeforeLoginScreen extends React.Component {
 
     let fullHistoryWeatherList = [];
 
+    console.log("Begin Historical Weather Loop!");
     for (let i = 28; i > 0; i--) {
       let yesterday = new Date(backDate);
       yesterday.setDate(yesterday.getDate() - 1);
       backDate = yesterday;
       historyDateList.push(yesterday);
     }
+
+    console.log("History Date List: ", historyDateList);
 
     for (let date of historyDateList) {
       date.setHours(date.getHours() - 5);
@@ -413,17 +421,19 @@ export class BeforeLoginScreen extends React.Component {
         }
       }
 
+      console.log("Getting Historical Weather Data!");
       let isoPlanDate = Math.floor(date.getTime() / 1000);
       let weatherHistoryURL = `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${latitude}&lon=${longitude}&dt=${isoPlanDate}&appid=${WEATHER_API_KEY}&units=imperial`;
       this.setState({ dataType: "historical weather" });
       let weatherHistoryResponse = await fetch(weatherHistoryURL);
       let weatherHistoryJSON = await weatherHistoryResponse.json();
 
-      // console.log("WEATHER_API_KEY",WEATHER_API_KEY);
-      // console.log("weatherHistoryJSON",weatherHistoryJSON);
+      console.log("WEATHER_API_KEY: ",WEATHER_API_KEY);
+      console.log("weatherHistoryJSON: ",weatherHistoryJSON);
 
       if (weatherHistoryJSON.data && weatherHistoryJSON.data.length > 0) {
-        let historicalWeatherItem = Object.assign({}, weatherHistoryJSON.data[0]); 
+        let historicalWeatherItem = Object.assign({}, weatherHistoryJSON.data[0]);
+        console.log(historicalWeatherItem); 
         historicalWeatherItem.date = new Date(weatherHistoryJSON.data[0].dt * 1000);
         historicalWeatherItem.temp = weatherHistoryJSON.data[0].temp;
         historicalWeatherItem.text = weatherHistoryJSON.data[0].weather[0].main;
@@ -431,15 +441,15 @@ export class BeforeLoginScreen extends React.Component {
 
         fullHistoryWeatherList.push(historicalWeatherItem);
       }
-      //console.log(historicalWeatherItem);
     }
 
+    console.log("Putting together final historical weather list!");
     for (let weather of fullHistoryWeatherList) {
       let weatherImgList = {
         date: weather.date.getDate(),
         img: weather.icon,
         temp: weather.temp,
-        text: weather.main,
+        text: weather.text,
       };
       if (weather.date.getMonth() === today.getMonth()) {
         if (weather.date.getDate() != today.getDate()) {
@@ -449,10 +459,15 @@ export class BeforeLoginScreen extends React.Component {
         lastMonthWeather.push(weatherImgList);
       }
     }
+
+    console.log("Historical Weather Data Acquired!");
+
+    console.log("On to Current Weather!");
     this.setState({ dataType: "current weather" });
     let weatherURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,daily,alerts&units=imperial&appid=${WEATHER_API_KEY}`;
     let currWeatherResponse = await fetch(weatherURL);
     let weatherJson = await currWeatherResponse.json();
+    console.log("weatherJSON: ", weatherJson);
     let weatherNow = {
       date: today.getDate(),
       img: weatherJson.current.weather[0].icon,
@@ -462,21 +477,25 @@ export class BeforeLoginScreen extends React.Component {
   
     thisMonthWeather.push(weatherNow);
 
+    console.log("Today's Weather Data Acquired!");
+
     // let imageURI =
     //   "http://openweathermap.org/img/w/" + weatherJson.weather[0].icon + ".png";
     // this.setState({ imageURI: imageURI });
 
+    console.log("On to Future Weather!");
     this.setState({ dataType: "future weather" });
     let weatherForecastURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,current,alerts&units=imperial&appid=${WEATHER_API_KEY}`;
     let weatherForecastResponse = await fetch(weatherForecastURL);
     let weatherForecastJSON = await weatherForecastResponse.json();
+    console.log("weatherForecastJSON: ", weatherForecastJSON);
     let weatherForecastList = [];
     
     for (let weather of weatherForecastJSON.daily) {
         let forecastDate = new Date(weather.dt * 1000);
         
         let newWeatherForecast = {
-            date: forecastDate.getDate(),
+            date: forecastDate,
             img: weather.weather[0].icon,
             temp: weather.feels_like.day,
             text: weather.weather[0].main,
@@ -484,17 +503,27 @@ export class BeforeLoginScreen extends React.Component {
     
         weatherForecastList.push(newWeatherForecast);
     }
+
+    console.log("Weather Forecast List: ", weatherForecastList);
     
     for (let weather of weatherForecastList) {
         if (weather.date.getMonth() === today.getMonth()) {
-            thisMonthWeather.push(weather);
+            weather.date = weather.date.getDate();
+
+            let dupDate = thisMonthWeather.some(w => w.date === weather.date);
+
+            if (!dupDate) {
+              thisMonthWeather.push(weather);
+            }
         } else {
+            weather.date = weather.date.getDate();
             nextMonthWeather.push(weather);
         }
     }
-    // console.log("lastMonthWeather", lastMonthWeather);
-    // console.log("thisMonthWeather", thisMonthWeather);
-    // console.log("nextMonthWeather", nextMonthWeather);
+    
+    console.log("lastMonthWeather", lastMonthWeather);
+    console.log("thisMonthWeather", thisMonthWeather);
+    console.log("nextMonthWeather", nextMonthWeather);
     return [lastMonthWeather, thisMonthWeather, nextMonthWeather];
   };
   

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Platform,
   TextInput,
   View,
   Text,
@@ -121,6 +122,7 @@ const ICONS = {
 
 export class PlanOnCalendar extends React.Component {
   constructor(props) {
+    console.log("Now in Plan On Calendar!");
     super(props);
     //Load users' basic info from BeforeLoginScreen.js
     this.userEmail = this.props.route.params.userEmail;
@@ -252,7 +254,7 @@ export class PlanOnCalendar extends React.Component {
       //Event detail modal visibility
       isPlanDetailModalVis: false,
     };
-    // console.log("this.state.activityData", this.state.activityData);
+    console.log("Plan On Calendar Created!");
   }
   componentDidMount() {
     this.scrollToThisWeek();
@@ -1076,7 +1078,7 @@ export class PlanOnCalendar extends React.Component {
                 // }
                 
                 
-                // console.log("this.userStrategies",this.userStrategies);
+                console.log("Moving from PlanOnCalendar to TrackingPage.js");
                 this.props.navigation.navigate("TrackingPage", {
                   userEmail: this.userEmail,
                   userInfo: this.userInfo,
@@ -1982,6 +1984,7 @@ export class PlanOnCalendar extends React.Component {
               {this.state.keywordsBuddle.map((item) => {
                 return (
                   <View
+                    key={item.id || index}
                     style={{
                       height: 25,
                       borderRadius: 20,
@@ -2620,6 +2623,7 @@ export class PlanOnCalendar extends React.Component {
                   {this.state.keywordsBuddle.map((item) => {
                     return (
                       <View
+                        key={item.id || index}
                         style={{
                           height: 25,
                           borderRadius: 20,

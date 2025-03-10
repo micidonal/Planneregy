@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Planneregy",
-    "slug": "Planneregy",
-    "owner": "kmcdonald",
+    "slug": "planneregy",
+    "owner": "cs-4605-team",
     "scheme": "planneregy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     },
     "updates": {
       "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/b92fdeb7-4f37-437f-9194-2ea0031e8966"
+      "url": "https://u.expo.dev/1fc3189a-fa6b-482c-a630-71f8f34f52a3"
     },
     "assetBundlePatterns": [
       "assets/fonts/**/*"
@@ -41,13 +41,13 @@
     "plugins": [
       "expo-asset"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "b92fdeb7-4f37-437f-9194-2ea0031e8966"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1fc3189a-fa6b-482c-a630-71f8f34f52a3"
+      }
     }
   }
 }

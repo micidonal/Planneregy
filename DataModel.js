@@ -151,10 +151,20 @@ class DataModel {
   };
   //Update the weather list to Firebase
   updateWeatherInfo = async (key, fullWeatherList) => {
+    console.log("updating Weather Info!");
     let weatherListRef = collection(this.db, "users", key, "weather_records");
+    console.log("weather list reference: ", weatherListRef);
+    console.log("full weather list: ", fullWeatherList);
 
+    console.log("adding weather data to the doc!");
     for (let weather of fullWeatherList) {
-      await addDoc(weatherListRef, weather);
+      try {
+        console.log("Uploading weather:", weather);
+        await addDoc(weatherListRef, weather);
+        console.log("Successfully uploaded weather:", weather);
+      } catch (error) {
+        console.error("ERROR uploading weather data:", error);
+      }
     }
   };
   //Check if the user defined activity list exist
