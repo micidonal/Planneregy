@@ -5,11 +5,14 @@
  - OpenWeather API calls updated in BeforeLoginScreen.js (using https://openweathermap.org/api/one-call-3 documentation), hopefully right
  - Locate and adjust API call related code in DataModel.js (Firebase calls) and Login.js (Google Cloud calls) to ensure they work properly
  - Ensure depreciated packages/imports used in the original project still work and any issues can be adjusted for by adjusting import versions and not the code itself
+ - Tested the code using Expo ('expo start' or 'npx expo start' depending on imports to local machine) and iPhones (download ExpoGo from AppStore), mostly stable
+    - Gets through each .js file at least once, on sequential logins of the same account errors occur (for testing, hit reset button on login screen each time, error discussed below)
+
    
 **Need To Do**
- - Test the code using Expo ('expo start' or 'npx expo start' depending on imports to local machine) and your iPhone (download ExpoGo from AppStore)
-    - Makes it through App.js, Login.js, OnBoardingScreen.js, DataModel.js, BeforeLoginScreen.js
-    - Gets to Calendar.js/PlanOnCalendar.js and breaks, the code in Calendar.js specifically is awful, lots of issues, can't seem to figure it out
+ - *react-native-modal-selector* causing only error, happens on sequential logins, seems to tie back to library being 8+ years old and recent **React** versions affect usability
+    - Currently, testing possible solution with library fork, linking it locally and changing code that causes issue (just one line)
+ - Application UI formatting (render() sections of code) need slight tweaks, as certain icons have new names (warnings issued) and placement of certain objects out of line, nothing (seems to be) broken here though
   
 # How to Test
  - Clone this repo locally
@@ -33,6 +36,9 @@
     - If QR code doesn't work, press 's' and when it reloads try again
  - For App testing, it will take you to ExpoGo (either directly or routed through browser)
     - Make sure you have downloaded and logged into ExpoGo
- - Once there, wait for the app to load. Eventually, you will see the start menu. Hit "Login with Google" and *cancel* the redirect request (part of the Dev workaround)
-    - Move through the Onboarding screen, when you hit the last check, you will see a lot of console logs
-    - At the moment, breaks after weather loads and it moves into PlanOnCalendar.js
+ - Once there, wait for the app to load. Eventually, you will see the start menu.
+    - If this is your *first* time (since restart/initial), you can just hit "Login with Google" and *cancel* the redirect request (part of the Dev workaround)
+    - If this is not your first time, tap "Reset" at the top of this screen and hit "Confirm", then continue with the process above (avoids initial crash)
+      - Don't do this if you want to see initial crash logs
+ - Move through the Onboarding screen, when you hit the last check, you will see a lot of console logs, and it will eventually load main navigation screen
+ - You can mess around with it from here (will crash if you try to add a new plan, as it encounters **ModalSelector** when loading *PlanOnCalendar.js*/*TrackingPage.js* and the same error occurs)
