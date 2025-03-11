@@ -13,9 +13,12 @@ import {
 	FlatList,
 	Image,
 	Alert,
+	AppState,
 	// Modal,
 } from "react-native";
 import { Modal as RNModal } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import * as Font from "expo-font";
 // import { TextInput } from 'react-native-paper';
 
@@ -29,14 +32,11 @@ import CalendarHeader from "./assets/svg/calendarHeader.svg";
 import Indicator from "./assets/svg/indicator.svg";
 import BottomIndicator from "./assets/svg/bottomIndicator.svg";
 import Guide from "./assets/svg/Guide.svg";
-import TipCalendar1 from "./assets/svg/tipCalendar1.svg";
-import TipCalendar2 from "./assets/svg/tipCalendar2.svg";
-import TipCalendar3 from "./assets/svg/tipCalendar3.svg";
-import TipCalendar4 from "./assets/svg/tipCalendar4.svg";
-import TipCalendar5 from "./assets/svg/tipCalendar5.svg";
-
-
-
+import TipCalendar1 from "./assets/svg/tipCalendar1.1.svg";
+import TipCalendar2 from "./assets/svg/tipCalendar1.2.svg";
+import TipCalendar3 from "./assets/svg/tipCalendar1.3.svg";
+import TipCalendar4 from "./assets/svg/tipCalendar1.4.svg";
+import TipCalendar5 from "./assets/svg/tipCalendar1.5.svg";
 
 //Load icon source
 import { Feather } from "@expo/vector-icons";
@@ -45,6 +45,8 @@ import { AntDesign } from "@expo/vector-icons";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 //Load interactive component libraries
 import SlidingUpPanel from "rn-sliding-up-panel";
@@ -65,6 +67,9 @@ import RemovableChips from "react-native-chip/RemovableChips";
 import Onboarding from "react-native-onboarding-swiper";
 import Swiper from "react-native-swiper";
 import { Badge } from "react-native-ui-lib";
+import { BlurView } from "expo-blur";
+
+// import * as Progress from 'react-native-progress';
 
 //Load functional libraries
 import moment, { min } from "moment";
@@ -75,8 +80,6 @@ import { MonthCalendar } from "./Calendar";
 import { getDataModel } from "./DataModel";
 import { generalStyles } from "./styles/GeneralStyling";
 import { timing } from "react-native-reanimated";
-
-console.log("In TrackingPage.js...");
 
 Array.prototype.move = function (from, to) {
 	this.splice(to, 0, this.splice(from, 1)[0]);
@@ -92,6 +95,11 @@ let TEST_DATA = [
 	"Outdoor",
 	"Gym",
 ];
+let COLORS = {
+	YELLOW: "#FFB800",
+	GREEN: "#1AB700",
+	UNDEFINED: "black",
+};
 
 let TEST_DATA2 = [
 	{ title: "Light Exercise", id: 1 },
@@ -103,6 +111,7 @@ let TEST_DATA2 = [
 	{ title: "Outdoor", id: 7 },
 	{ title: "Gym", id: 8 },
 ];
+const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
 
 let TEST_DATA3 = [
 	{ title: "Walking", date: "MON 9:30AM-9:50AM", duration: "20 MIN", id: 1 },
@@ -169,8 +178,10 @@ const REPORTSCREEN_SEVEN = [
 	{ label: "No", value: "No" },
 ];
 const REPORT_OPTIONS = [
-	{ label: "Records", value: "activity" },
-	{ label: "Reports", value: "daily" },
+	{ label: "ToDos", value: "report" },
+	{ label: "Completed", value: "records" },
+	{ label: "Overview", value: "overview" },
+
 	// { label: "Both", value: "both" },
 ];
 
@@ -180,7 +191,7 @@ const EVALUATIONSCREEN_FOUR = [
 ];
 const EVALUATIONSCREEN_FIVE = [
 	{ label: "Yes, I'll retry a previous strategy", value: "Yes" },
-	{ label: "No, I'll reset all plans", value: "No" },
+	{ label: "No, I'll start from scratch", value: "No" },
 ];
 
 const GREEN = "#1AB700";
@@ -195,12 +206,18 @@ export class TrackingPage extends React.Component {
 		//Load users' basic info from BeforeLoginScreen.js
 		this.isFromPlanSetUp = this.props.route.params.isFromPlanSetUp;
 		this.userEmail = this.props.route.params.userEmail;
+		this.userInfo = this.props.route.params.userInfo;
 		this.userKey = this.props.route.params.userInfo.key;
 		this.userPlans = this.props.route.params.userInfo.userPlans;
 		this.userStrategies = this.props.route.params.userStrategies;
+		this.isEvaluationDate = this.props.route.params.isEvaluationDate;
 		this.userStrategies.sort(function (a, b) {
 			return new Date(b.startDate) - new Date(a.startDate);
 		});
+		this.isGuideVis = false;
+		if (this.props.route.params.isGuideVis) {
+			this.isGuideVis = this.props.route.params.isGuideVis;
+		}
 		// console.log("this.userPlans",this.userPlans);
 		// console.log("this.userPlans",this.userKey);
 		//Get data model & user strategies
@@ -260,7 +277,7 @@ export class TrackingPage extends React.Component {
 
 		this.preList = [];
 		this.reportCnt;
-		this.isBadgeVis = "flex";
+		this.isBadgeVis = "none";
 		this.processDailyReports();
 		//Determine where the report popup come from
 		this.isReportFromPopup = true;
@@ -380,9 +397,11 @@ export class TrackingPage extends React.Component {
 			//Daily report collections
 			preList: this.preList,
 			//Daily report collection visibility
-			isDailyReportVis: "none",
+			isDailyReportVis: "flex",
 			//Activity records collection visibility
-			isActivityRecordsVis: "flex",
+			isActivityRecordsVis: "none",
+			//Overview visibility
+			isOverviewVis: "none",
 			//report status: check the type of the report user submit
 			reportStatus: "default",
 			//calendar view height
@@ -427,43 +446,148 @@ export class TrackingPage extends React.Component {
 			evaluationPage_Index: 0,
 			evaluationNEXTbtnTxt: "NEXT",
 			//Guide popup vis
-			isGuideVis: false,
+			isGuideVis: this.isGuideVis,
 			//Value for reloading
-			valueForReload:0,
+			valueForReload: 0,
+			//Popup previous strategy modal
+			isPreStrategyVis: false,
+			isPanelVis: "none",
+			//Review popup vis
+			isReviewPopVis: false,
+			//is SelectStrategy popup disabled
+			isSelectStrategyDisable: false,
+			//is Review button disabled
+			isReviewBtnDisabled: false,
+			//Color of the bottom icons
+			archiveIconColor: "grey",
+			homeIconColor: "black",
+			//if the review btn is displayed
+			isReviewBtnVis: "none",
+			isReportBtnDisabled: false,
+			reportBtnColor: "black",
+			unplannedActivityPanelVis: "none",
+			addUnplannedActivityBtnVis: "flex",
+			currentGuideStep: 1,
+			bottomBtnVis: "flex",
+			appState: AppState.currentState,
 		};
 		this.processUserStrategies();
 		// this.processDailyReports_after();
-		this.dailyReportPopup();
-		// console.log("this.state.activityData", this.state.activityData);
+
+		// if (this.isGuideVis) {
+		// 	this.safeSetState({ isReportModalVis: false });
+		// } else {
+		// 	if (this.isEvaluationDate) {
+		// 		console.log("is evaluation");
+		// 		this.safeSetState({ isReportModalVis: false });
+		// 		this.safeSetState({ isReviewPopVis: true });
+		// 		this.safeSetState({ isReviewBtnVis: "flex" });
+		// 	} else {
+		// 		this.dailyReportPopup();
+		// 	}
+		// }
 	}
 	componentDidMount() {
+		this._isMounted = true;
+		AppState.addEventListener("change", this._handleAppStateChange);
 		this.scrollToThisWeek();
 		this.dataModel = getDataModel();
 		this.dataModel.loadUserStrategies();
-		this.dailyReportPopup();
-		// this.setState({isBadgeVis:"none"})
+		// this.dailyReportPopup();
+		this.focusUnsubscribe = this.props.navigation.addListener(
+			"focus",
+			this.onFocus
+		);
+
+		if (this.isGuideVis) {
+			this.safeSetState({ isReportModalVis: false });
+		} else {
+			if (this.isEvaluationDate) {
+				console.log("is evaluation");
+				this.safeSetState({ isReportModalVis: false });
+				this.safeSetState({ isReviewPopVis: true });
+				this.safeSetState({ isReviewBtnVis: "flex" });
+			} else {
+				this.dailyReportPopup();
+			}
+		}
+		// this.calculateCompletion2()
+		// this.safeSetState({isBadgeVis:"none"})
 		// this.processDailyReports_after();
 		// console.log("componentDidMount");
 	}
+
+	componentWillUnmount() {
+		console.log("Component is unmounting...");
+		this._isMounted = false;
+		AppState.removeEventListener("change", this._handleAppStateChange);
+		if (this.focusUnsubscribe) {
+			this.focusUnsubscribe();
+		}
+	}
+
+	safeSetState = (newState) => {
+		if (this._isMounted) {
+			this.setState(newState);
+		}
+		console.log("Prevented setState after unmount:", newState);
+	};
+
+	_handleAppStateChange = (nextAppState) => {
+		this.safeSetState({ appState: nextAppState });
+
+		if (nextAppState === "background") {
+			// Do something here on app background.
+			console.log("App is in Background Mode.");
+		}
+
+		if (nextAppState === "active") {
+			// Do something here on app active foreground mode.
+			console.log("App is in Active Foreground Mode.");
+			this.props.navigation.navigate("BeforeLoginScreen", {
+				// userEmail: this.state.userEmail,
+			});
+		}
+
+		// if (nextAppState === "inactive") {
+		// 	// Do something here on app inactive mode.
+		// 	console.log("App is in inactive Mode.");
+		// 	this.props.navigation.navigate("Login", {
+		// 		// userEmail: this.state.userEmail,
+		// 	});
+		// }
+	};
+
+	onFocus = async () => {
+		this.scrollToThisWeek();
+		this.dataModel = getDataModel();
+		this.dataModel.loadUserStrategies();
+		// this.dailyReportPopup();
+		this.safeSetState({ valueForReload: 2 });
+	};
 	evaluatePanelPopup = async () => {
+		this.safeSetState({ bottomBtnVis: "none" });
+		this.safeSetState({ isSelectStrategyDisable: true });
+		this.safeSetState({ isReviewBtnDisabled: true });
 		if (this.state.evaluatePanelDisplay === "none") {
-			this.setState({ evaluatePanelDisplay: "flex" });
-			this.setState({ swipeAblePanelDisplay: "none" });
-			await this.setState({ isPanelHided: false });
-			await this.setState({
+			this.safeSetState({ evaluatePanelDisplay: "flex" });
+			this.safeSetState({ swipeAblePanelDisplay: "none" });
+			await this.safeSetState({ isPanelHided: false });
+			await this.safeSetState({
 				hideIcon2: (
 					<Ionicons name="chevron-down-circle" size={25} color="black" />
 				),
 			});
-			this.setState({ panelHeight: 300 });
+			this.safeSetState({ panelHeight: 300 });
 			setTimeout(() => {
 				this._panel.show();
 			});
 		} else {
-			this.setState({ evaluatePanelDisplay: "none" });
-			this.setState({ swipeAblePanelDisplay: "flex" });
+			this.safeSetState({ evaluatePanelDisplay: "none" });
+			this.safeSetState({ swipeAblePanelDisplay: "flex" });
 		}
 	};
+
 	dailyReportPopup = () => {
 		// console.log("this.state.preList", this.state.preList);
 		let today = moment(new Date()).format().slice(5, 10);
@@ -473,11 +597,13 @@ export class TrackingPage extends React.Component {
 		// console.log("this.state.preList",this.state.preList);
 		for (let item of this.state.preList) {
 			// console.log("item.start.slice(5, 10)",item.start.slice(5, 10),today);
-			if (item.start.slice(5, 10) === today) {
-				reportItem = item;
-				isReportExist = true;
-				if (item.timeStamp) {
-					isActivityPlanned = true;
+			if (item.start) {
+				if (item.start.slice(5, 10) === today) {
+					reportItem = item;
+					isReportExist = true;
+					if (item.timeStamp) {
+						isActivityPlanned = true;
+					}
 				}
 			}
 		}
@@ -487,17 +613,16 @@ export class TrackingPage extends React.Component {
 				setTimeout(() => {
 					this.onMyActivityReportPressed(reportItem), 1000;
 				});
-				this.setState({ isPlanDetailModalVis: false });
+				this.safeSetState({ isPlanDetailModalVis: false });
 			} else {
 				console.log("no Activity PLanned");
 				this.onDailyPressed(reportItem);
-				// this.setState({ isReportModalVis: true });
+				// this.safeSetState({ isReportModalVis: true });
 			}
 		}
 	};
 	//Get previous 5-day's daily reports
-	processDailyReports = async() => {
-
+	processDailyReports = async () => {
 		// console.log("formattedStartDate",formattedStartDate);
 		this.preList = [];
 		this.reportCnt = 0;
@@ -552,56 +677,62 @@ export class TrackingPage extends React.Component {
 			let date = moment(preDate).format().slice(0, 10);
 			let isReportExist = false;
 			for (let event of this.userPlans) {
-				let eventStartDate = new Date(moment(event.start.slice(0,10)).format("YYYY-MM-DD"));
-				if (event.start && eventStartDate>=formattedStartDate) {
-					if (
-						event.start.slice(0, 10) === date.slice(0, 10) &&
-						!event.isDeleted &&
-						event.isPlanned != "added-activity"
-					) {
-						isReportExist = true;
+				if (event.start) {
+					let eventStartDate = new Date(
+						moment(event.start.slice(0, 10)).format("YYYY-MM-DD")
+					);
+					if (event.start && eventStartDate >= formattedStartDate) {
+						if (
+							event.start.slice(0, 10) === date.slice(0, 10) &&
+							!event.isDeleted &&
+							event.isPlanned != "added-activity"
+						) {
+							isReportExist = true;
+						}
 					}
 				}
 			}
 			if (!isReportExist) {
+				console.log("add daily report");
 				report.title = "Daily Report";
 				report.start = date;
 				report.end = report.start;
 				report.key = report.start;
-				let reportStartDate = new Date(moment(report.start.slice(0,10)).format("YYYY-MM-DD"));
+				let reportStartDate = new Date(
+					moment(report.start.slice(0, 10)).format("YYYY-MM-DD")
+				);
 				if (reportStartDate >= formattedStartDate) {
 					this.preList.push(report);
 				}
-
 			} else {
 				for (let event of this.userPlans) {
-					if (
-						event.start.slice(0, 10) === date &&
-						!event.isReported &&
-						!event.isDeleted
-					) {
-						// console.log("push event1", event.title);
-						this.preList.push(event);
-						// console.log("push event");
+					if (event.start) {
+						if (
+							event.start.slice(0, 10) === date &&
+							!event.isReported &&
+							!event.isDeleted
+						) {
+							// console.log("push event1", event.title);
+							this.preList.push(event);
+							// console.log("push event");
+						}
 					}
 				}
 			}
 		}
-		// console.log("this.preList",this.preList);
+		console.log("this.preList", this.preList);
 		this.reportCnt = this.preList.length;
-		console.log("this.preList.length",this.preList.length);
-		this.setState({ preList: this.preList });
-		this.setState({ reportCnt: this.reportCnt });
+		console.log("this.preList.length", this.preList.length);
+		// this.safeSetState({ preList: this.preList });
+		this.safeSetState({ reportCnt: this.reportCnt });
 		if (this.reportCnt != 0) {
 			this.isBadgeVis = "flex";
 		} else {
 			this.isBadgeVis = "none";
 		}
-		this.setState({isBadgeVis:this.isBadgeVis})
-
+		this.safeSetState({ isBadgeVis: this.isBadgeVis });
 	};
 	processDailyReports_after = async () => {
-		
 		console.log("======processDailyReports_after======");
 		// console.log("this.state.plansBuddle",this.state.plansBuddle);
 		this.preList = [];
@@ -633,8 +764,6 @@ export class TrackingPage extends React.Component {
 		if (!isReportExist) {
 			// console.log("psh wrong report");
 			this.preList.push(dailyReport);
-			
-			console.log("push daily report1", report);
 		} else {
 			if (isReportPopup) {
 				console.log("psh wrong report");
@@ -650,7 +779,7 @@ export class TrackingPage extends React.Component {
 		// }else {
 		//   eventList = this.userPlans;
 		// }
-		
+
 		let startDate = await SecureStore.getItemAsync("START_DATE");
 		let formattedStartDate = new Date(moment(startDate).format("YYYY-MM-DD"));
 		for (let i = 1; i <= 5; i++) {
@@ -659,57 +788,65 @@ export class TrackingPage extends React.Component {
 			let date = moment(preDate).format().slice(0, 10);
 			let isReportExist = false;
 			for (let event of this.userPlans) {
-				let eventStartDate = new Date(moment(event.start.slice(0,10)).format("YYYY-MM-DD"));
-				if (event.start && eventStartDate>=formattedStartDate) {
-					if (
-						event.start.slice(0, 10) === date.slice(0, 10) &&
-						!event.isDeleted &&
-						event.isPlanned != "added-activity"
-					) {
-						isReportExist = true;
+				if (event.start) {
+					let eventStartDate = new Date(
+						moment(event.start.slice(0, 10)).format("YYYY-MM-DD")
+					);
+					if (event.start && eventStartDate >= formattedStartDate) {
+						if (
+							event.start.slice(0, 10) === date.slice(0, 10) &&
+							!event.isDeleted &&
+							event.isPlanned != "added-activity"
+						) {
+							isReportExist = true;
+						}
 					}
 				}
 			}
 			if (!isReportExist) {
-				// console.log("this.preList",this.preList);
+				console.log("add daily report after");
 				report.title = "Daily Report";
 				report.start = date;
 				report.end = report.start;
 				report.key = report.start;
-				let reportStartDate = new Date(moment(report.start.slice(0,10)).format("YYYY-MM-DD"));
-				if (reportStartDate >= formattedStartDate) {
+				let reportStartDate = new Date(
+					moment(report.start.slice(0, 10)).format("YYYY-MM-DD")
+				);
+				if (
+					reportStartDate >= formattedStartDate &&
+					!this.preList.some((e) => e.start === report.start)
+				) {
 					this.preList.push(report);
 					console.log("push daily report2", report);
 				}
-
 			} else {
 				console.log("this.state.plansBuddle", this.state.plansBuddle);
 				for (let event of this.state.plansBuddle) {
 					if (
 						event.start.slice(0, 10) === date &&
 						!event.isReported &&
-						!event.isDeleted
+						!event.isDeleted &&
+						!this.preList.some((e) => e.timeStamp === event.timeStamp)
 					) {
 						this.preList.push(event);
-						
 					}
 				}
 			}
 		}
 		this.reportCnt = this.preList.length;
-		this.setState({ preList: this.preList });
+		this.safeSetState({ preList: this.preList });
 		// console.log("preList",this.preList);
-		this.setState({ reportCnt: this.reportCnt });
+		this.safeSetState({ reportCnt: this.reportCnt });
 		// console.log("this.reportCnt",this.reportCnt);
 		if (this.reportCnt != 0) {
-			await this.setState({ isBadgeVis: "flex" });
+			await this.safeSetState({ isBadgeVis: "flex" });
 		} else {
 			// console.log("set to none");
-			await this.setState({ isBadgeVis: "none" });
+			await this.safeSetState({ isBadgeVis: "none" });
 		}
 		// console.log("this.state.isBadgeVis", this.state.isBadgeVis);
-
-		// console.log("this.state.preList", this.state.preList);
+		// await this.safeSetState({valueForReload:"reloaded"})
+		console.log("this.state.preList11", this.state.preList);
 	};
 	//Click the "Current Week" and scroll to the current week
 	scrollToThisWeek = () => {
@@ -724,6 +861,8 @@ export class TrackingPage extends React.Component {
 		});
 	};
 	processUserEvents = () => {
+		// console.log("this.userPlans", this.userPlans);
+		console.log("processUserEvents");
 		for (let event of this.userPlans) {
 			if (event.title && !event.isDeleted) {
 				if (
@@ -746,13 +885,13 @@ export class TrackingPage extends React.Component {
 					) {
 						this.combinedEventListThis.push(event);
 					}
-				} else if (monthNum === currMonth.getMonth()) {
-					if (
-						!this.combinedEventListLast.includes(event) &&
-						!this.combinedEventListLast.some(
-							(e) => e.timeStamp === event.timeStamp
-						)
-					) {
+				} else if (
+					monthNum === currMonth.getMonth() &&
+					!this.combinedEventListLast.some(
+						(e) => e.timeStamp === event.timeStamp
+					)
+				) {
+					if (!this.combinedEventListLast.includes(event)) {
 						this.combinedEventListLast.push(event);
 					}
 				} else if (monthNum === currMonth.getMonth() + 2) {
@@ -768,16 +907,18 @@ export class TrackingPage extends React.Component {
 				//let plannedEvent = Object.assign({}, event);
 			}
 		}
+		// console.log("combinedEventListThis", this.combinedEventListThis);
 	};
 	//Process user strategies and get the current one
 	processUserStrategies = async () => {
 		let startDate = await SecureStore.getItemAsync("START_DATE");
+		let targetStrategy;
 		// console.log("START_DATE",startDate);
 		for (let strategy of this.userStrategies) {
 			if (strategy.startDate === startDate) {
 				this.currentStrategy = strategy;
-				this.setState({ planStrategyName: strategy.title });
-				this.setState({
+				this.safeSetState({ planStrategyName: strategy.title });
+				this.safeSetState({
 					strategyDuration:
 						strategy.startDate.slice(5) + " → " + strategy.endDate.slice(5),
 				});
@@ -786,17 +927,17 @@ export class TrackingPage extends React.Component {
 					keyword.key = initKey;
 					initKey++;
 				}
-				this.setState({ keywordsBuddle: strategy.keywords });
-				this.setState({ plansBuddle: strategy.plans });
-				this.setState({ selectedKeywords: strategy.keywords });
-				this.setState({ selectedStrategyPlans: strategy.plans });
+				this.safeSetState({ keywordsBuddle: strategy.keywords });
+				this.safeSetState({ plansBuddle: strategy.plans });
+				this.safeSetState({ selectedKeywords: strategy.keywords });
+				this.safeSetState({ selectedStrategyPlans: strategy.plans });
 			}
 		}
-		this.setState({
+		this.safeSetState({
 			monthCalStrategyStartDate: this.currentStrategy.startDate,
 		});
-		this.setState({ selectedStrategy: this.currentStrategy });
-		// console.log("this.state.selectedStrategy");
+		this.safeSetState({ selectedStrategy: this.currentStrategy });
+		console.log("this.state.selectedStrategy");
 		// console.log("this.state.monthCalStrategyStartDate",this.state.monthCalStrategyStartDate);
 	};
 	//Process user defined activities
@@ -820,24 +961,24 @@ export class TrackingPage extends React.Component {
 	pastMonthBtnPressed = async () => {
 		if (this.state.currentMonth === "THIS_MONTH") {
 			// console.log("past month pressed");
-			await this.setState({ currentMonth: "PAST_MONTH" });
-			await this.setState({
+			await this.safeSetState({ currentMonth: "PAST_MONTH" });
+			await this.safeSetState({
 				currentMonthEvents: this.combinedEventListLast,
 			});
-			await this.setState({
+			await this.safeSetState({
 				currentWeatherLists: this.lastMonthWeather,
 			});
-			// await this.setState({ pastMonthBtnDisabled: true });
-			await this.setState({
+			// await this.safeSetState({ pastMonthBtnDisabled: true });
+			await this.safeSetState({
 				currentMonthDate: new Date(
 					this.state.date.getFullYear(),
 					this.state.date.getMonth() - 1,
 					15
 				),
 			});
-			await this.setState({ pastMonthBtnDisabled: true });
-			await this.setState({ nextMonthBtnDisabled: false });
-			await this.setState({
+			await this.safeSetState({ pastMonthBtnDisabled: true });
+			await this.safeSetState({ nextMonthBtnDisabled: false });
+			await this.safeSetState({
 				currentMonthName: moment().subtract(1, "month").format("MMMM"),
 			});
 			this.monthCalRef.current.processEvents();
@@ -849,24 +990,24 @@ export class TrackingPage extends React.Component {
 	nextMonthBtnPressed = async () => {
 		if (this.state.currentMonth === "THIS_MONTH") {
 			// console.log("past month pressed");
-			await this.setState({ currentMonth: "NEXT_MONTH" });
-			await this.setState({
+			await this.safeSetState({ currentMonth: "NEXT_MONTH" });
+			await this.safeSetState({
 				currentMonthEvents: this.combinedEventListNext,
 			});
-			await this.setState({
+			await this.safeSetState({
 				currentWeatherLists: this.nextMonthWeather,
 			});
-			// await this.setState({ pastMonthBtnDisabled: true });
-			await this.setState({
+			// await this.safeSetState({ pastMonthBtnDisabled: true });
+			await this.safeSetState({
 				currentMonthDate: new Date(
 					this.state.date.getFullYear(),
 					this.state.date.getMonth() + 1,
 					15
 				),
 			});
-			await this.setState({ nextMonthBtnDisabled: true });
-			await this.setState({ pastMonthBtnDisabled: false });
-			await this.setState({
+			await this.safeSetState({ nextMonthBtnDisabled: true });
+			await this.safeSetState({ pastMonthBtnDisabled: false });
+			await this.safeSetState({
 				currentMonthName: moment().add(1, "month").format("MMMM"),
 			});
 
@@ -908,7 +1049,7 @@ export class TrackingPage extends React.Component {
 					type: "warning",
 					icon: "warning",
 				});
-				this.setState({ userDefinedActivityText: "" });
+				this.safeSetState({ userDefinedActivityText: "" });
 				this.textInput.clear();
 				return;
 			}
@@ -929,24 +1070,24 @@ export class TrackingPage extends React.Component {
 			type: "success",
 			icon: "success",
 		});
-		await this.setState({ userDefinedActivityText: "" });
+		await this.safeSetState({ userDefinedActivityText: "" });
 		this.textInput.clear();
 	};
 	//reset calendar to current month
 	resetCalendarToCurrentMonth = async () => {
-		await this.setState({ currentMonth: "THIS_MONTH" });
-		await this.setState({
+		await this.safeSetState({ currentMonth: "THIS_MONTH" });
+		await this.safeSetState({
 			currentMonthEvents: this.combinedEventListThis,
 		});
-		await this.setState({
+		await this.safeSetState({
 			currentWeatherLists: this.thisMonthWeather,
 		});
-		await this.setState({
+		await this.safeSetState({
 			currentMonthDate: new Date(),
 		});
-		await this.setState({ nextMonthBtnDisabled: false });
-		await this.setState({ pastMonthBtnDisabled: false });
-		await this.setState({ currentMonthName: moment().format("MMMM") });
+		await this.safeSetState({ nextMonthBtnDisabled: false });
+		await this.safeSetState({ pastMonthBtnDisabled: false });
+		await this.safeSetState({ currentMonthName: moment().format("MMMM") });
 
 		this.monthCalRef.current.processEvents();
 	};
@@ -959,9 +1100,9 @@ export class TrackingPage extends React.Component {
 		let endDay = new Date(moment(today).add(7, "days"));
 		// console.log("today", "endDay", today, endDay);
 		// if (selectedDay > today && selectedDay <= endDay) {
-		await this.setState({ selectedDate: selectedDay });
+		await this.safeSetState({ selectedDate: selectedDay });
 		// console.log("selectedDate", this.state.selectedDate);
-		await this.setState({ isDateSelected: true });
+		await this.safeSetState({ isDateSelected: true });
 		showMessage({
 			message: "Date Selected",
 			description:
@@ -980,20 +1121,20 @@ export class TrackingPage extends React.Component {
 	};
 	//Validate the start time user selected
 	pickStartTime = async (date) => {
-		this.setState({ isStartTimeSelected: true });
-		await this.setState({ endTime: date });
+		this.safeSetState({ isStartTimeSelected: true });
+		await this.safeSetState({ endTime: date });
 
 		// await this.dateTimeFilter(date);
 		console.log("date", date);
 		if (date < this.state.endTime) {
-			await this.setState({ startTime: date });
+			await this.safeSetState({ startTime: date });
 			let formattedStart = moment(this.state.startTime).format();
 			if (this.state.currentSwipeIndex != 8) {
-				await this.setState({ reportStart: formattedStart });
+				await this.safeSetState({ reportStart: formattedStart });
 			}
 
-			await this.setState({ isStartTimeValid: true });
-			await this.setState({ isEndTimeValid: true });
+			await this.safeSetState({ isStartTimeValid: true });
+			await this.safeSetState({ isEndTimeValid: true });
 			showMessage({
 				message: "Start Time Confirmed",
 				description:
@@ -1003,13 +1144,13 @@ export class TrackingPage extends React.Component {
 				icon: "success",
 			});
 		} else {
-			await this.setState({ startTime: date });
+			await this.safeSetState({ startTime: date });
 			let formattedStart = moment(this.state.startTime).format();
 			if (this.state.currentSwipeIndex != 8) {
-				await this.setState({ reportStart: formattedStart });
+				await this.safeSetState({ reportStart: formattedStart });
 			}
 
-			await this.setState({ isStartTimeValid: false });
+			await this.safeSetState({ isStartTimeValid: false });
 			console.log("formattedStart", formattedStart);
 			showMessage({
 				message: "Invalid Time",
@@ -1022,20 +1163,20 @@ export class TrackingPage extends React.Component {
 	};
 	//Validate the end time user selected
 	pickEndTime = async (date) => {
-		// this.setState({ isTimeSelected: true });
+		// this.safeSetState({ isTimeSelected: true });
 		// await this.dateTimeFilter(date);
-		// await this.setState({startTime:date});
+		// await this.safeSetState({startTime:date});
 		// console.log("end time", date);
-		// this.setState({ })
-		this.setState({ isEndTimeSelected: true });
+		// this.safeSetState({ })
+		this.safeSetState({ isEndTimeSelected: true });
 		if (date > this.state.startTime) {
-			await this.setState({ endTime: date });
-			await this.setState({ isStartTimeValid: true });
-			await this.setState({ isEndTimeValid: true });
+			await this.safeSetState({ endTime: date });
+			await this.safeSetState({ isStartTimeValid: true });
+			await this.safeSetState({ isEndTimeValid: true });
 
 			let formattedEnd = moment(this.state.endTime).format();
 			if (this.state.currentSwipeIndex != 8) {
-				await this.setState({ reportEnd: formattedEnd });
+				await this.safeSetState({ reportEnd: formattedEnd });
 			}
 			// console.log("formattedEnd",formattedEnd);
 
@@ -1048,13 +1189,13 @@ export class TrackingPage extends React.Component {
 				icon: "success",
 			});
 		} else {
-			await this.setState({ endTime: date });
+			await this.safeSetState({ endTime: date });
 			let formattedEnd = moment(this.state.endTime).format();
 			if (this.state.currentSwipeIndex != 8) {
-				await this.setState({ reportEnd: formattedEnd });
+				await this.safeSetState({ reportEnd: formattedEnd });
 			}
 
-			await this.setState({ isEndTimeValid: false });
+			await this.safeSetState({ isEndTimeValid: false });
 			showMessage({
 				message: "Invalid Time",
 				description: "The end time must come after the start time",
@@ -1179,7 +1320,7 @@ export class TrackingPage extends React.Component {
 		let duration = moment.duration(
 			moment(formattedEndTime).diff(moment(formattedStartTime))
 		);
-		let durationMinutes = parseInt(duration.asMinutes()) % 60;
+		let durationMinutes = parseInt(duration.asMinutes());
 
 		newEvent.duration = durationMinutes;
 		newEvent.activityReminderKey = await this.dataModel.scheduleNotification(
@@ -1202,9 +1343,9 @@ export class TrackingPage extends React.Component {
 
 		let currentMinutes = this.state.accumulatedMinutes;
 		let updatedMinutes = currentMinutes + durationMinutes;
-		this.setState({ accumulatedMinutes: updatedMinutes });
+		this.safeSetState({ accumulatedMinutes: updatedMinutes });
 
-		await this.setState({ plansBuddle: updatedPlanBundle });
+		await this.safeSetState({ plansBuddle: updatedPlanBundle });
 		console.log(this.state.plansBuddle);
 
 		showMessage({
@@ -1237,12 +1378,12 @@ export class TrackingPage extends React.Component {
 		// updatedPlansBuddle.splice(deleteIndexInPlansBuddle, 1);
 		// updatedPlansBuddle.splice(deleteIndexInPlansBuddle,1);
 		// console.log("updatedPlansBuddle",updatedPlansBuddle);
-		await this.setState({ plansBuddle: updatedPlansBuddle });
+		await this.safeSetState({ plansBuddle: updatedPlansBuddle });
 		// console.log("this.state.plansBuddle",this.state.plansBuddle);
 
 		let currentMinutes = this.state.accumulatedMinutes;
 		let updatedMinutes = currentMinutes - selectedActivity.duration;
-		this.setState({ accumulatedMinutes: updatedMinutes });
+		this.safeSetState({ accumulatedMinutes: updatedMinutes });
 
 		selectedActivity.isDeleted = true;
 
@@ -1266,7 +1407,7 @@ export class TrackingPage extends React.Component {
 				}
 			}
 			this.combinedEventListThis.splice(deleteIndex, 1);
-			await this.setState({ eventsThisMonth: this.combinedEventListThis });
+			await this.safeSetState({ eventsThisMonth: this.combinedEventListThis });
 		} else if (monthNum === this.state.date.getMonth() + 2) {
 			let deleteIndex;
 			for (let event of this.combinedEventListNext) {
@@ -1275,7 +1416,7 @@ export class TrackingPage extends React.Component {
 				}
 			}
 			this.combinedEventListNext.splice(deleteIndex, 1);
-			await this.setState({ eventsNextMonth: this.combinedEventListNext });
+			await this.safeSetState({ eventsNextMonth: this.combinedEventListNext });
 		}
 
 		if (moment(selectedActivity.start).month() === moment(new Date()).month()) {
@@ -1308,7 +1449,7 @@ export class TrackingPage extends React.Component {
 			}
 			let newKeywords = { title: newKeywordsRow, type: "USER_DEFINED" };
 			this.KeyWordTextInput.clear();
-			this.setState({ userDefinedKeywords: "" });
+			this.safeSetState({ userDefinedKeywords: "" });
 			let updatedKeywordsListFromInput = this.state.keywordsListFromInput;
 			for (let keywords of updatedKeywordsListFromInput) {
 				if (keywords.title.toLowerCase() === newKeywords.title.toLowerCase()) {
@@ -1322,7 +1463,7 @@ export class TrackingPage extends React.Component {
 				}
 			}
 			updatedKeywordsListFromInput.push(newKeywords);
-			this.setState({ keywordsListFromInput: updatedKeywordsListFromInput });
+			this.safeSetState({ keywordsListFromInput: updatedKeywordsListFromInput });
 
 			let updatedKeywordsBuddle = [];
 			for (let keywords of this.state.keywordsListFromExample) {
@@ -1331,7 +1472,7 @@ export class TrackingPage extends React.Component {
 			for (let keywords of updatedKeywordsListFromInput) {
 				updatedKeywordsBuddle.push(keywords);
 			}
-			this.setState({ keywordsBuddle: updatedKeywordsBuddle });
+			this.safeSetState({ keywordsBuddle: updatedKeywordsBuddle });
 			showMessage({
 				message: "Added keywords",
 				description: newKeywords.title + " added to keywords",
@@ -1358,7 +1499,7 @@ export class TrackingPage extends React.Component {
 		}
 		let updatedKeywordsListFromInput = this.state.keywordsListFromInput;
 		updatedKeywordsListFromInput.splice(deleteIndex, 1);
-		this.setState({
+		this.safeSetState({
 			keywordsListFromInput: updatedKeywordsListFromInput,
 		});
 
@@ -1369,7 +1510,7 @@ export class TrackingPage extends React.Component {
 		for (let keywords of this.state.keywordsListFromExample) {
 			updatedKeywordsBuddle.push(keywords);
 		}
-		this.setState({
+		this.safeSetState({
 			keywordsBuddle: updatedKeywordsBuddle,
 		});
 	};
@@ -1385,14 +1526,14 @@ export class TrackingPage extends React.Component {
 			updatedKeywordsBuddle.push(keywordsObj);
 			updatedKeywordsListFromExample.push(keywordsObj);
 		}
-		this.setState({ keywordsBuddle: updatedKeywordsBuddle });
-		this.setState({
+		this.safeSetState({ keywordsBuddle: updatedKeywordsBuddle });
+		this.safeSetState({
 			keywordsListFromExample: updatedKeywordsListFromExample,
 		});
 	};
 	//Fired when user presses the back btn on the last page
 	onBackBtnPressed = () => {
-		// this.setState({
+		// this.safeSetState({
 		//   confirmPageIcon: (
 		//     <FontAwesome5
 		//       name="angle-double-right"
@@ -1401,23 +1542,23 @@ export class TrackingPage extends React.Component {
 		//     />
 		//   ),
 		// });
-		// this.setState({ confirmPageTitle: "You are almost there!" });
-		// this.setState({ confirmBtnDisplay: "flex" });
-		// this.setState({ confirmTxtDisplay: "none" });
-		// this.setState({ swipeAblePanelDisplay: "flex" });
-		// this.setState({ thirdSlidePanelPageUpdatedDisplay: "none" });
+		// this.safeSetState({ confirmPageTitle: "You are almost there!" });
+		// this.safeSetState({ confirmBtnDisplay: "flex" });
+		// this.safeSetState({ confirmTxtDisplay: "none" });
+		// this.safeSetState({ swipeAblePanelDisplay: "flex" });
+		// this.safeSetState({ thirdSlidePanelPageUpdatedDisplay: "none" });
 
-		this.setState({ mainContentSwiperDisplay: "flex" });
-		this.setState({ conformationPageDisplay: "none" });
+		this.safeSetState({ mainContentSwiperDisplay: "flex" });
+		this.safeSetState({ conformationPageDisplay: "none" });
 		this.mainContentSwiperRef.current.goToPage(1, true);
-		this.setState({ panelHeight: 500 });
+		this.safeSetState({ panelHeight: 500 });
 		this._panel.hide();
-		this.setState({ displayCalView: "flex" });
-		this.setState({ displayTitle: "flex" });
-		this.setState({
+		this.safeSetState({ displayCalView: "flex" });
+		this.safeSetState({ displayTitle: "flex" });
+		this.safeSetState({
 			title: <SummarizePlanningStrategy height={28} width={119} />,
 		});
-		this.panelSwiperRef.current.goToPage(1, true);
+		// this.panelSwiperRef.current.goToPage(1, true);
 	};
 	//Fired when user presses the confirm btn on the last page
 	onConfirmBtnPressed = async () => {
@@ -1431,14 +1572,14 @@ export class TrackingPage extends React.Component {
 			return;
 		}
 
-		this.setState({
+		this.safeSetState({
 			confirmPageIcon: <Feather name="check-circle" size={32} color="black" />,
 		});
-		this.setState({ confirmPageTitle: "You are all set!" });
-		this.setState({ confirmBtnDisplay: "none" });
-		this.setState({ confirmTxtDisplay: "flex" });
-		this.setState({ swipeAblePanelDisplay: "none" });
-		this.setState({ thirdSlidePanelPageUpdatedDisplay: "flex" });
+		this.safeSetState({ confirmPageTitle: "You are all set!" });
+		this.safeSetState({ confirmBtnDisplay: "none" });
+		this.safeSetState({ confirmTxtDisplay: "flex" });
+		this.safeSetState({ swipeAblePanelDisplay: "none" });
+		this.safeSetState({ thirdSlidePanelPageUpdatedDisplay: "flex" });
 
 		let duration =
 			moment(new Date()).format("MMM Do YY") +
@@ -1469,8 +1610,8 @@ export class TrackingPage extends React.Component {
 	//Press the title on calendar
 	onPress = (item, monthNum, month) => {
 		this.isReportFromPopup = true;
-		this.setState({ isDetailViewActivityInfoListVis: "flex" });
-		this.setState({ isNoActivitySignVis: "none" });
+		this.safeSetState({ isDetailViewActivityInfoListVis: "flex" });
+		this.safeSetState({ isNoActivitySignVis: "none" });
 		console.log("item, monthNum, month", item, monthNum, month);
 		let today = new Date();
 		let weatherList = [];
@@ -1480,7 +1621,13 @@ export class TrackingPage extends React.Component {
 		let formattedSelectedEventDate = moment(selectedEventDate)
 			.format()
 			.slice(0, 10);
-
+		if (selectedEventDate > today) {
+			this.safeSetState({ reportBtnColor: "grey" });
+			this.safeSetState({ isReportBtnDisabled: true });
+		} else {
+			this.safeSetState({ reportBtnColor: "black" });
+			this.safeSetState({ isReportBtnDisabled: false });
+		}
 		if (monthNum === today.getMonth()) {
 			weatherList = this.thisMonthWeather;
 			// console.log("this.combinedEventListThis",this.combinedEventListThis);
@@ -1527,7 +1674,7 @@ export class TrackingPage extends React.Component {
 		// console.log(formattedSelectedEventDate);
 
 		this.detailViewCalendar = detailViewCalendar;
-		this.setState({ isPlanDetailModalVis: true });
+		this.safeSetState({ isPlanDetailModalVis: true });
 		let cnt = 0;
 		for (let event of this.detailViewCalendar) {
 			if (event.title && event.isPlanned != "added-activity") {
@@ -1535,14 +1682,13 @@ export class TrackingPage extends React.Component {
 			}
 		}
 		if (cnt === 0) {
-			this.setState({ isDetailViewActivityInfoListVis: "none" });
-			this.setState({ isNoActivitySignVis: "flex" });
+			this.safeSetState({ isDetailViewActivityInfoListVis: "none" });
+			this.safeSetState({ isNoActivitySignVis: "flex" });
 		}
 		console.log("detailViewCalendar", detailViewCalendar);
 	};
 	//Report btn pressed
-	onMyActivityReportPressed = async(item) => {
-
+	onMyActivityReportPressed = async (item) => {
 		if (this.isReportFromPopup) {
 			for (let event of this.state.plansBuddle) {
 				if (event.timeStamp === item.timeStamp) {
@@ -1557,63 +1703,66 @@ export class TrackingPage extends React.Component {
 
 		// console.log("key",key);
 
-		this.setState({ isReportModalVis: true });
-		this.setState({ reportDetailInfoVis: "flex" });
-		this.setState({ isReportSwipePERVvis: "flex" });
-		this.setState({ reportNEXTbtn: "NEXT" });
+		this.safeSetState({ isReportModalVis: true });
+		this.safeSetState({ reportDetailInfoVis: "flex" });
+		this.safeSetState({ isReportSwipePERVvis: "flex" });
+		this.safeSetState({ reportNEXTbtn: "NEXT" });
 
-		this.setState({ reportTitle: item.title });
-		this.setState({ reportStart: item.start });
-		this.setState({ reportEnd: item.end });
-		this.setState({ reportDuration: item.duration });
+		this.safeSetState({ reportTitle: item.title });
+		this.safeSetState({ reportStart: item.start });
+		this.safeSetState({ reportEnd: item.end });
+		this.safeSetState({ reportDuration: item.duration });
 
 		let selectedDay = new Date(
 			moment(item.start).add(1, "d").format("YYYY-MM-DD")
 		);
-		this.setState({ selectedDate: selectedDay });
-		this.setState({ dateTimePickerDate: selectedDay });
+		this.safeSetState({ selectedDate: selectedDay });
+		this.safeSetState({ dateTimePickerDate: selectedDay });
 	};
 	//When user pressed the daily report btn
 	onDailyPressed = async (item) => {
 		let selectedDay = new Date(
-			moment(new Date()).add(1, "d").format("YYYY-MM-DD")
+			moment(item.start).add(1, "d").format("YYYY-MM-DD")
 		);
-		this.setState({ selectedDate: selectedDay });
-		this.setState({ dateTimePickerDate: selectedDay });
+		this.safeSetState({ selectedDate: selectedDay });
+		this.safeSetState({ dateTimePickerDate: selectedDay });
+		this.pickTheDate(moment(item.start).format("YYYY-MM-DD"));
 
 		this.dailyReportItem = item;
 		// console.log("item",item);
-		await this.setState({ dailyReportDate: item.start.slice(5) });
+		await this.safeSetState({ dailyReportDate: item.start.slice(5) });
 		// console.log("this.state.dailyReportDate",this.state.dailyReportDate);
-		this.setState({ isReportModalVis: true });
-		this.setState({ currentSwipeIndex: 6 });
-		this.setState({ currentSwipePage: 6 });
-		this.setState({ reportModalHeight: "50%" });
-		this.setState({ reportDetailInfoVis: "none" });
-		this.setState({ isReportSwipePERVvis: "none" });
-		this.setState({ reportNEXTbtn: "NEXT" });
+		this.safeSetState({ isReportModalVis: true });
+		this.safeSetState({ currentSwipeIndex: 6 });
+		this.safeSetState({ currentSwipePage: 6 });
+		this.safeSetState({ reportModalHeight: "50%" });
+		this.safeSetState({ reportDetailInfoVis: "none" });
+		this.safeSetState({ isReportSwipePERVvis: "none" });
+		this.safeSetState({ reportNEXTbtn: "NEXT" });
 	};
 	//Close the daily report window
 	onDailyReportClose = () => {
-		this.setState({ isReportModalVis: false });
-		this.setState({ currentSwipeIndex: 0 });
-		this.setState({ currentSwipePage: 0 });
-		this.setState({ reportModalHeight: "50%" });
-		this.setState({ reportNEXTbtn: "NEXT" });
-		this.setState({ isReportSwipePERVvis: "flex" });
-		this.setState({ isReportSwipePERVdisabled: true });
-		this.setState({ reportPageONEvalue: 1 });
-		this.setState({ satisfactionScore: "1" });
-		this.setState({ reportPage_FOUR_value: "Different_Activity" });
-		this.setState({ reportPage_SEVEN_value: "Yes" });
-		this.setState({ reportStatus: "default" });
-		this.setState({
+		this.safeSetState({ isReportModalVis: false });
+		this.safeSetState({ addUnplannedActivityBtnVis: "flex" });
+		this.safeSetState({ currentSwipeIndex: 0 });
+		this.safeSetState({ currentSwipePage: 0 });
+		this.safeSetState({ reportModalHeight: "50%" });
+		this.safeSetState({ unplannedActivityPanelVis: "none" });
+		this.safeSetState({ reportNEXTbtn: "NEXT" });
+		this.safeSetState({ isReportSwipePERVvis: "flex" });
+		this.safeSetState({ isReportSwipePERVdisabled: true });
+		this.safeSetState({ reportPageONEvalue: 1 });
+		this.safeSetState({ satisfactionScore: "1" });
+		this.safeSetState({ reportPage_FOUR_value: "Different_Activity" });
+		this.safeSetState({ reportPage_SEVEN_value: "Yes" });
+		this.safeSetState({ reportStatus: "default" });
+		this.safeSetState({
 			selfReportedActivityList: [],
 		});
-		this.setState({ reportScreen_THREETxt: "" });
-		this.setState({ selectedActivity: "" });
-		this.setState({ startTime: new Date(this.today.setHours(8, 0, 0)) });
-		this.setState({ startTime: new Date(this.today.setHours(8, 30, 0)) });
+		this.safeSetState({ reportScreen_THREETxt: "" });
+		this.safeSetState({ selectedActivity: "" });
+		this.safeSetState({ startTime: new Date(this.today.setHours(8, 0, 0)) });
+		this.safeSetState({ startTime: new Date(this.today.setHours(8, 30, 0)) });
 
 		this.isReportFromPopup = true;
 	};
@@ -1622,17 +1771,22 @@ export class TrackingPage extends React.Component {
 		let selectedDay = new Date(
 			moment(new Date()).add(1, "d").format("YYYY-MM-DD")
 		);
-		this.setState({ selectedDate: selectedDay });
-		this.setState({ dateTimePickerDate: selectedDay });
+		this.safeSetState({ selectedDate: selectedDay });
+		this.safeSetState({ dateTimePickerDate: selectedDay });
+		this.pickTheDate(moment(selectedDay).format("YYYY-MM-DD"));
 
-		this.setState({ isReportModalVis: true });
-		this.setState({ currentSwipeIndex: 8 });
-		this.setState({ currentSwipePage: 8 });
-		this.setState({ reportModalHeight: 600 });
-		this.setState({ reportDetailInfoVis: "none" });
-		this.setState({ isReportSwipePERVvis: "none" });
-		this.setState({ reportStatus: "ADD_ACTIVITY" });
-		this.setState({ reportNEXTbtn: "SUBMIT" });
+		// this.safeSetState({ selectedDate: selectedDay });
+		// this.safeSetState({ dateTimePickerDate: selectedDay });
+		this.safeSetState({ unplannedActivityPanelVis: "flex" });
+		this.safeSetState({ isReportModalVis: true });
+		this.safeSetState({ currentSwipeIndex: 8 });
+		this.safeSetState({ currentSwipePage: 8 });
+		this.safeSetState({ reportModalHeight: 600 });
+		this.safeSetState({ reportDetailInfoVis: "none" });
+		this.safeSetState({ isReportSwipePERVvis: "none" });
+		this.safeSetState({ reportStatus: "ADD_ACTIVITY" });
+		this.safeSetState({ reportNEXTbtn: "SUBMIT" });
+		this.safeSetState({ addUnplannedActivityBtnVis: "none" });
 	};
 	//The previous btn on the report modal pressed
 	onReportPrevBtnPressed = () => {
@@ -1640,224 +1794,224 @@ export class TrackingPage extends React.Component {
 		// this.reportModalSwiperRef.current.scrollBy(-1, true);
 
 		// if (currentSwipePage - 1 === 0) {
-		//   this.setState({ currentSwipeIndex: 0 });
-		//   this.setState({ isReportSwipePERVdisabled: true });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 0 });
+		//   this.safeSetState({ isReportSwipePERVdisabled: true });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (currentSwipePage - 1 === 2) {
-		//   this.setState({ currentSwipeIndex: 2 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 2 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (currentSwipePage - 1 === 4) {
-		//   this.setState({ currentSwipeIndex: 4 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 4 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (currentSwipePage - 1 === 5) {
-		//   this.setState({ currentSwipeIndex: 5 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 5 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (currentSwipePage - 1 === 6) {
-		//   this.setState({ currentSwipeIndex: 6 });
-		//   this.setState({ reportModalHeight: "50%" });
-		//   this.setState({ reportNEXTbtn: "NEXT" });
+		//   this.safeSetState({ currentSwipeIndex: 6 });
+		//   this.safeSetState({ reportModalHeight: "50%" });
+		//   this.safeSetState({ reportNEXTbtn: "NEXT" });
 
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// }
 		// currentSwipePage--;
-		// this.setState({ currentSwipePage: currentSwipePage });
+		// this.safeSetState({ currentSwipePage: currentSwipePage });
 		let currentSwipePage = this.state.currentSwipePage;
 		// this.reportModalSwiperRef.current.scrollBy(-1, true);
 		console.log("currentSwipePage", currentSwipePage);
 		if (currentSwipePage === 1) {
-			this.setState({ currentSwipeIndex: 0 });
-			this.setState({ currentSwipePage: 0 });
+			this.safeSetState({ currentSwipeIndex: 0 });
+			this.safeSetState({ currentSwipePage: 0 });
 			this.reportModalSwiperRef.current.scrollBy(-1, true);
-			this.setState({ isReportSwipePERVdisabled: true });
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportSwipePERVdisabled: true });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 2) {
-			this.setState({ currentSwipeIndex: 0 });
-			this.setState({ currentSwipePage: 0 });
-			this.setState({ isReportSwipePERVdisabled: true });
+			this.safeSetState({ currentSwipeIndex: 0 });
+			this.safeSetState({ currentSwipePage: 0 });
+			this.safeSetState({ isReportSwipePERVdisabled: true });
 
-			this.setState({ reportNEXTbtn: "NEXT" });
+			this.safeSetState({ reportNEXTbtn: "NEXT" });
 			this.reportModalSwiperRef.current.scrollBy(-1, true);
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportModalVis: false });
 
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 3) {
-			this.setState({ currentSwipeIndex: 2 });
-			this.setState({ currentSwipePage: 2 });
+			this.safeSetState({ currentSwipeIndex: 2 });
+			this.safeSetState({ currentSwipePage: 2 });
 			this.reportModalSwiperRef.current.scrollBy(-1, true);
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportModalVis: false });
 
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 4) {
-			this.setState({ currentSwipeIndex: 2 });
-			this.setState({ currentSwipePage: 2 });
+			this.safeSetState({ currentSwipeIndex: 2 });
+			this.safeSetState({ currentSwipePage: 2 });
 			this.reportModalSwiperRef.current.scrollBy(-2, true);
-			this.setState({ reportModalHeight: "50%" });
+			this.safeSetState({ reportModalHeight: "50%" });
 
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 5) {
-			this.setState({ currentSwipeIndex: 3 });
-			this.setState({ currentSwipePage: 3 });
+			this.safeSetState({ currentSwipeIndex: 3 });
+			this.safeSetState({ currentSwipePage: 3 });
 			this.reportModalSwiperRef.current.scrollBy(-2, true);
 
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 7) {
-			this.setState({ currentSwipeIndex: 4 });
-			this.setState({ currentSwipePage: 4 });
+			this.safeSetState({ currentSwipeIndex: 4 });
+			this.safeSetState({ currentSwipePage: 4 });
 			this.reportModalSwiperRef.current.scrollBy(-3, true);
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (currentSwipePage === 8) {
 			console.log("currentSwipePage7");
-			this.setState({ isReportModalVis: false });
-			this.setState({ reportNEXTbtn: "NEXT" });
-			this.setState({ reportModalHeight: "50%" });
+			this.safeSetState({ isReportModalVis: false });
+			this.safeSetState({ reportNEXTbtn: "NEXT" });
+			this.safeSetState({ reportModalHeight: "50%" });
 			if (this.state.reportModalHeight === 600) {
-				this.setState({ currentSwipeIndex: 6 });
-				this.setState({ currentSwipePage: 6 });
+				this.safeSetState({ currentSwipeIndex: 6 });
+				this.safeSetState({ currentSwipePage: 6 });
 				this.reportModalSwiperRef.current.scrollBy(-1, true);
-				this.setState({ isReportSwipePERVvis: "none" });
-				this.setState({ isReportSwipePERVdisabled: true });
-				this.setState({ reportModalHeight: "50%" });
+				this.safeSetState({ isReportSwipePERVvis: "none" });
+				this.safeSetState({ isReportSwipePERVdisabled: true });
+				this.safeSetState({ reportModalHeight: "50%" });
 			} else {
 				if (this.state.reportPageONEvalue == 1) {
-					this.setState({ currentSwipeIndex: 1 });
-					this.setState({ currentSwipePage: 1 });
+					this.safeSetState({ currentSwipeIndex: 1 });
+					this.safeSetState({ currentSwipePage: 1 });
 					this.reportModalSwiperRef.current.scrollBy(-6, true);
 				} else if (this.state.reportPageONEvalue == 3) {
 					// if (this.state.reportPage_FOUR_value == "Different_Activity") {
-					//   this.setState({ currentSwipeIndex: 5 });
-					//   this.setState({ currentSwipePage: 5 });
+					//   this.safeSetState({ currentSwipeIndex: 5 });
+					//   this.safeSetState({ currentSwipePage: 5 });
 					//   this.reportModalSwiperRef.current.scrollBy(-2, true);
 					// } else {
-					this.setState({ reportModalHeight: 500 });
-					this.setState({ currentSwipeIndex: 7 });
-					this.setState({ currentSwipePage: 7 });
+					this.safeSetState({ reportModalHeight: 500 });
+					this.safeSetState({ currentSwipeIndex: 7 });
+					this.safeSetState({ currentSwipePage: 7 });
 					this.reportModalSwiperRef.current.scrollBy(-1, true);
 					// }
 				}
 			}
 
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		}
 		// currentSwipePage--;
-		// this.setState({ currentSwipePage: currentSwipePage });
+		// this.safeSetState({ currentSwipePage: currentSwipePage });
 	};
 	//The next btn on the report modal pressed
 	onReportNextBtnPressed = async () => {
 		//this.state.currentSwipePage refers to the current page's index
 		// if (this.state.currentSwipePage === 0) {
-		//   this.setState({ isReportSwipePERVdisabled: false });
+		//   this.safeSetState({ isReportSwipePERVdisabled: false });
 		//   this.reportModalSwiperRef.current.scrollBy(1, true);
 		// } else if (this.state.currentSwipePage === 1) {
-		//   this.setState({ currentSwipeIndex: 2 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 2 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 3) {
-		//   this.setState({ currentSwipeIndex: 4 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 4 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 4) {
-		//   this.setState({ currentSwipeIndex: 5 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 5 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 6) {
-		//   this.setState({ currentSwipeIndex: 7 });
-		//   this.setState({ reportModalHeight: "90%" });
-		//   this.setState({ isReportModalVis: false });
-		//   this.setState({ reportNEXTbtn: "SUBMIT" });
+		//   this.safeSetState({ currentSwipeIndex: 7 });
+		//   this.safeSetState({ reportModalHeight: "90%" });
+		//   this.safeSetState({ isReportModalVis: false });
+		//   this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else {
 		//   this.reportModalSwiperRef.current.scrollBy(1, true);
 		// }
 		// let currentSwipePage = this.state.currentSwipePage;
 		// currentSwipePage++;
-		// this.setState({ currentSwipePage: currentSwipePage });
+		// this.safeSetState({ currentSwipePage: currentSwipePage });
 
 		//this.state.currentSwipePage refers to the current page's index
 		// console.log("this.state.reportPageONEvalue", this.state.reportPageONEvalue);
 		let currentSwipePage = this.state.currentSwipePage;
 
 		if (this.state.currentSwipePage === 0) {
-			this.setState({ isReportSwipePERVdisabled: false });
+			this.safeSetState({ isReportSwipePERVdisabled: false });
 
 			if (this.state.reportPageONEvalue == 1) {
 				this.reportModalSwiperRef.current.scrollBy(1, true);
 				currentSwipePage++;
-				this.setState({ currentSwipeIndex: 1 });
-				this.setState({ isReportModalVis: false });
+				this.safeSetState({ currentSwipeIndex: 1 });
+				this.safeSetState({ isReportModalVis: false });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			} else if (this.state.reportPageONEvalue == 2) {
 				this.reportModalSwiperRef.current.scrollBy(2, true);
 
 				currentSwipePage = currentSwipePage + 2;
-				this.setState({ currentSwipeIndex: 2 });
-				this.setState({ isReportModalVis: false });
-				this.setState({ reportNEXTbtn: "SUBMIT" });
+				this.safeSetState({ currentSwipeIndex: 2 });
+				this.safeSetState({ isReportModalVis: false });
+				this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			} else if (this.state.reportPageONEvalue == 3) {
 				this.reportModalSwiperRef.current.scrollBy(2, true);
 
 				currentSwipePage = currentSwipePage + 2;
-				this.setState({ currentSwipeIndex: 2 });
-				this.setState({ isReportModalVis: false });
-				this.setState({ reportNEXTbtn: "NEXT" });
+				this.safeSetState({ currentSwipeIndex: 2 });
+				this.safeSetState({ isReportModalVis: false });
+				this.safeSetState({ reportNEXTbtn: "NEXT" });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			}
 		} else if (this.state.currentSwipePage === 1) {
 			currentSwipePage = currentSwipePage + 7;
-			this.setState({ currentSwipeIndex: 8 });
-			this.setState({ reportModalHeight: 670 });
-			this.setState({ isReportModalVis: false });
-			this.setState({ reportStatus: "COMPLETE" });
-			this.setState({ reportNEXTbtn: "SUBMIT" });
+			this.safeSetState({ currentSwipeIndex: 8 });
+			this.safeSetState({ reportModalHeight: "50%" });
+			this.safeSetState({ isReportModalVis: false });
+			this.safeSetState({ reportStatus: "COMPLETE" });
+			this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (this.state.currentSwipePage === 2) {
 			if (this.state.reportNEXTbtn === "SUBMIT") {
@@ -1867,17 +2021,17 @@ export class TrackingPage extends React.Component {
 				console.log("set activity name");
 				this.reportModalSwiperRef.current.scrollBy(1, true);
 				currentSwipePage = currentSwipePage + 2;
-				this.setState({ currentSwipeIndex: 4 });
-				this.setState({ reportModalHeight: 500 });
-				this.setState({ isReportModalVis: false });
-				await this.setState({
+				this.safeSetState({ currentSwipeIndex: 4 });
+				this.safeSetState({ reportModalHeight: 500 });
+				this.safeSetState({ isReportModalVis: false });
+				await this.safeSetState({
 					startTime: new Date(this.onReportActivity.start),
 				});
-				await this.setState({ endTime: new Date(this.onReportActivity.end) });
-				await this.setState({ selectedActivity: this.onReportActivity.title });
+				await this.safeSetState({ endTime: new Date(this.onReportActivity.end) });
+				await this.safeSetState({ selectedActivity: this.onReportActivity.title });
 				console.log("this.state.selectedActivity", this.state.selectedActivity);
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			}
 		} else if (this.state.currentSwipePage === 3) {
@@ -1886,74 +2040,74 @@ export class TrackingPage extends React.Component {
 				this.reportModalSwiperRef.current.scrollBy(2, true);
 
 				currentSwipePage = currentSwipePage + 2;
-				this.setState({ currentSwipeIndex: 5 });
-				this.setState({ isReportModalVis: false });
+				this.safeSetState({ currentSwipeIndex: 5 });
+				this.safeSetState({ isReportModalVis: false });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			} else {
 				// console.log("Different_TIME");
 				this.reportModalSwiperRef.current.scrollBy(1, true);
-				this.setState({ reportModalHeight: 500 });
+				this.safeSetState({ reportModalHeight: 500 });
 				currentSwipePage = currentSwipePage + 1;
-				this.setState({ currentSwipeIndex: 4 });
-				this.setState({ isReportModalVis: false });
+				this.safeSetState({ currentSwipeIndex: 4 });
+				this.safeSetState({ isReportModalVis: false });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			}
 		} else if (this.state.currentSwipePage === 4) {
 			this.reportModalSwiperRef.current.scrollBy(3, true);
 			currentSwipePage = currentSwipePage + 3;
-			this.setState({ currentSwipeIndex: 7 });
-			this.setState({ reportStartTime: this.state.startTime });
-			this.setState({ reportEndTime: this.state.endTime });
-			this.setState({ reportActivityName: this.state.selectedActivity });
-			this.setState({ reportNEXTbtn: "NEXT" });
-			this.setState({ reportStatus: "PARTIALLY_COMPLETE_TIME" });
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ currentSwipeIndex: 7 });
+			this.safeSetState({ reportStartTime: this.state.startTime });
+			this.safeSetState({ reportEndTime: this.state.endTime });
+			this.safeSetState({ reportActivityName: this.state.selectedActivity });
+			this.safeSetState({ reportNEXTbtn: "NEXT" });
+			this.safeSetState({ reportStatus: "PARTIALLY_COMPLETE_TIME" });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (this.state.currentSwipePage === 5) {
 			this.reportModalSwiperRef.current.scrollBy(2, true);
 			currentSwipePage = currentSwipePage + 2;
-			this.setState({ currentSwipeIndex: 7 });
-			this.setState({ reportModalHeight: 670 });
-			this.setState({ reportNEXTbtn: "SUBMIT" });
-			this.setState({ reportStatus: "PARTIALLY_COMPLETE_ACTIVITY" });
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ currentSwipeIndex: 7 });
+			this.safeSetState({ reportModalHeight: "50%" });
+			this.safeSetState({ reportNEXTbtn: "SUBMIT" });
+			this.safeSetState({ reportStatus: "PARTIALLY_COMPLETE_ACTIVITY" });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else if (this.state.currentSwipePage === 6) {
 			if (this.state.reportPage_SEVEN_value == "Yes") {
 				this.reportModalSwiperRef.current.scrollBy(2, true);
 				currentSwipePage = currentSwipePage + 2;
-				this.setState({ currentSwipeIndex: 8 });
-				this.setState({ reportModalHeight: 600 });
-				this.setState({ reportNEXTbtn: "SUBMIT" });
-				this.setState({ isReportSwipePERVvis: "flex" });
-				this.setState({ isReportSwipePERVdisabled: false });
-				this.setState({ isReportModalVis: false });
+				this.safeSetState({ currentSwipeIndex: 8 });
+				this.safeSetState({ reportModalHeight: 600 });
+				this.safeSetState({ reportNEXTbtn: "SUBMIT" });
+				this.safeSetState({ isReportSwipePERVvis: "flex" });
+				this.safeSetState({ isReportSwipePERVdisabled: false });
+				this.safeSetState({ isReportModalVis: false });
 				setTimeout(() => {
-					this.setState({ isReportModalVis: true }), 1000;
+					this.safeSetState({ isReportModalVis: true }), 1000;
 				});
 			} else {
-				this.setState({ reportNEXTbtn: "SUBMIT" });
+				this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 				this.onSubmitDailyReport_NoActivity();
 				console.log("SUBMIT FUNCTION HERE");
 			}
 		} else if (this.state.currentSwipePage === 7) {
 			this.reportModalSwiperRef.current.scrollBy(1, true);
 			currentSwipePage = currentSwipePage + 1;
-			this.setState({ currentSwipeIndex: 8 });
-			this.setState({ reportNEXTbtn: "SUBMIT" });
-			this.setState({ reportStatus: "PARTIALLY_COMPLETE_TIME" });
-			this.setState({ reportModalHeight: 670 });
-			this.setState({ isReportModalVis: false });
+			this.safeSetState({ currentSwipeIndex: 8 });
+			this.safeSetState({ reportNEXTbtn: "SUBMIT" });
+			this.safeSetState({ reportStatus: "PARTIALLY_COMPLETE_TIME" });
+			this.safeSetState({ reportModalHeight: "50%" });
+			this.safeSetState({ isReportModalVis: false });
 			setTimeout(() => {
-				this.setState({ isReportModalVis: true }), 1000;
+				this.safeSetState({ isReportModalVis: true }), 1000;
 			});
 		} else {
 			if (this.state.reportStatus == "ADD_ACTIVITY") {
@@ -1968,40 +2122,47 @@ export class TrackingPage extends React.Component {
 				this.OnSubmitPressed_PartiallyComplete();
 			} else {
 				this.onSubmitPressed_UserAddedActivity();
+				this.onSubmitDailyReport_NoActivity();
 				this.onDailyReportClose();
 			}
+			showMessage({
+				message: "Activity Submitted",
+				description: "Wait for updating...",
+				type: "success",
+				icon: "success",
+			});
 		}
 		// } else if (this.state.currentSwipePage === 1) {
-		//   this.setState({ currentSwipeIndex: 2 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 2 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 3) {
-		//   this.setState({ currentSwipeIndex: 4 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 4 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 4) {
-		//   this.setState({ currentSwipeIndex: 5 });
-		//   this.setState({ isReportModalVis: false });
+		//   this.safeSetState({ currentSwipeIndex: 5 });
+		//   this.safeSetState({ isReportModalVis: false });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else if (this.state.currentSwipePage === 6) {
-		//   this.setState({ currentSwipeIndex: 7 });
-		//   this.setState({ reportModalHeight: "90%" });
-		//   this.setState({ isReportModalVis: false });
-		//   this.setState({ reportNEXTbtn: "SUBMIT" });
+		//   this.safeSetState({ currentSwipeIndex: 7 });
+		//   this.safeSetState({ reportModalHeight: "90%" });
+		//   this.safeSetState({ isReportModalVis: false });
+		//   this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 		//   setTimeout(() => {
-		//     this.setState({ isReportModalVis: true }), 1000;
+		//     this.safeSetState({ isReportModalVis: true }), 1000;
 		//   });
 		// } else {
 		//   this.reportModalSwiperRef.current.scrollBy(1, true);
 		// }
 
-		this.setState({ currentSwipePage: currentSwipePage });
+		this.safeSetState({ currentSwipePage: currentSwipePage });
 	};
 
 	//Pressed the btn of the self-added activity report popup
@@ -2073,16 +2234,16 @@ export class TrackingPage extends React.Component {
 		let duration = moment.duration(
 			moment(formattedEndTime).diff(moment(formattedStartTime))
 		);
-		let durationMinutes = parseInt(duration.asMinutes()) % 60;
+		let durationMinutes = parseInt(duration.asMinutes());
 
 		newEvent.duration = durationMinutes;
 		let updatedAdditionalActivityList = this.state.selfReportedActivityList;
 		updatedAdditionalActivityList.push(newEvent);
-		await this.setState({
+		await this.safeSetState({
 			selfReportedActivityList: updatedAdditionalActivityList,
 		});
-		await this.setState({ isDateSelected: false });
-		await this.setState({ selectedDate: new Date() });
+		await this.safeSetState({ isDateSelected: false });
+		await this.safeSetState({ selectedDate: new Date() });
 	};
 	//Delete the selected activity and update it on Firebase
 	deleteActivity_reportScreen = async (selectedActivity) => {
@@ -2094,14 +2255,15 @@ export class TrackingPage extends React.Component {
 		}
 
 		let updatedUserReportedActivityBuddle = this.state.selfReportedActivityList;
-		await this.setState({
+		await this.safeSetState({
 			selfReportedActivityList: updatedUserReportedActivityBuddle,
 		});
 		selectedActivity.isDeleted = true;
 	};
 	//Submit the report when no activity performed
 	onSubmitDailyReport_NoActivity = async () => {
-		this.setState({ isReportModalVis: false });
+		console.log("daily no activity");
+		this.safeSetState({ isReportModalVis: false });
 		let itemToSubmit = this.dailyReportItem;
 		itemToSubmit.isReported = true;
 		let formattedSelectedMonth = parseInt(
@@ -2118,8 +2280,8 @@ export class TrackingPage extends React.Component {
 		await this.dataModel.createNewPlan(this.userKey, itemToSubmit);
 		this.onDailyReportClose();
 		let eventDate = new Date(itemToSubmit.start);
-		await this.setState({ selectedDateRaw: eventDate });
-		await this.setState({
+		await this.safeSetState({ selectedDateRaw: eventDate });
+		await this.safeSetState({
 			currentMonthDate: this.state.selectedDateRaw,
 		});
 		this.scrollToThisWeek();
@@ -2128,7 +2290,19 @@ export class TrackingPage extends React.Component {
 	};
 	//Submit the user added activities
 	onSubmitPressed_UserAddedActivity = async () => {
-		this.setState({ isReportModalVis: false });
+		console.log("onSubmitPressed_UserAddedActivity");
+		let itemToSubmit = this.dailyReportItem;
+		let formattedSelectedMonth;
+		if (itemToSubmit) {
+			itemToSubmit.isReported = true;
+			formattedSelectedMonth = parseInt(
+				moment(itemToSubmit.start).format().slice(5, 7)
+			);
+			this.userPlans.push(itemToSubmit);
+		}
+		this.processDailyReports_after();
+
+		this.safeSetState({ isReportModalVis: false });
 		for (let event of this.state.selfReportedActivityList) {
 			event.isReported = true;
 			await this.dataModel.createNewPlan(this.userKey, event);
@@ -2139,28 +2313,39 @@ export class TrackingPage extends React.Component {
 				this.combinedEventListLast.push(event);
 				this.pastMonthBtnPressed();
 			}
+			// this.userPlans.push(event);
 		}
+		// for (let event of this.userPlans) {
+		// 	if (event.title) {
+		// 		if (event.title === "Daily Report")
+		// 	}
+		// }
+		// this.processDailyReports_after();
+		await this.processDailyReports_after();
 	};
 	//Submit the completed activity
 	onSubmitPressed_CompleteActivity = async () => {
-		console.log("==================onSubmitPressed_CompleteActivity==================");
+		console.log(
+			"==================onSubmitPressed_CompleteActivity=================="
+		);
 		// console.log("this.onReportActivity",this.onReportActivity);
-		this.setState({ isReportModalVis: false });
+		this.safeSetState({ isReportModalVis: false });
 		// await this.onSubmitPressed_UserAddedActivity();
 
 		let eventToUpdate = this.onReportActivity;
 		eventToUpdate.isActivityCompleted = true;
 		eventToUpdate.isReported = true;
 		eventToUpdate.satisfactionScore = this.state.satisfactionScore;
-		this.onSubmitPressed_UserAddedActivity();
-
+		if (this.state.selfReportedActivityList.length != 0) {
+			this.onSubmitPressed_UserAddedActivity();
+		}
 		let formattedThisMonth = parseInt(moment(new Date()).format().slice(5, 7));
 		let formattedSelectedMonth = parseInt(
 			moment(eventToUpdate.start).format().slice(5, 7)
 		);
 
 		let eventDate = new Date(eventToUpdate.start);
-		await this.setState({ selectedDateRaw: eventDate });
+		await this.safeSetState({ selectedDateRaw: eventDate });
 
 		let eventToUpdateToFirebaseActivities;
 		// console.log("this.combinedEventListThis",this.combinedEventListThis);
@@ -2178,7 +2363,7 @@ export class TrackingPage extends React.Component {
 				}
 			}
 			await this.resetCalendarToCurrentMonth();
-			await this.setState({
+			await this.safeSetState({
 				currentMonthDate: this.state.selectedDateRaw,
 			});
 			this.scrollToThisWeek();
@@ -2200,12 +2385,20 @@ export class TrackingPage extends React.Component {
 		// console.log("this.currentStrategy.plans", this.currentStrategy.plans);
 		// console.log("this.userKey",this.userKey);
 		if (this.isFromPlanSetUp) {
-			let key = await this.dataModel.getActivityKey(this.userKey, eventToUpdateToFirebaseActivities);
+			let key = await this.dataModel.getActivityKey(
+				this.userKey,
+				eventToUpdateToFirebaseActivities
+			);
 			eventToUpdateToFirebaseActivities.key = key;
 		}
 
-		console.log("eventToUpdateToFirebaseActivities",eventToUpdateToFirebaseActivities);
-		console.log("==================onSubmitPressed_CompleteActivity==================");
+		// console.log(
+		// 	"eventToUpdateToFirebaseActivities",
+		// 	eventToUpdateToFirebaseActivities
+		// );
+		console.log(
+			"==================onSubmitPressed_CompleteActivity=================="
+		);
 
 		await this.dataModel.updatePlan(
 			this.userKey,
@@ -2222,7 +2415,7 @@ export class TrackingPage extends React.Component {
 	};
 	//Submit uncompleted activity
 	onSubmitPressed_NoActivity = async () => {
-		this.setState({ isReportModalVis: false });
+		this.safeSetState({ isReportModalVis: false });
 		// await this.onSubmitPressed_UserAddedActivity();
 
 		let eventToUpdate = this.onReportActivity;
@@ -2240,7 +2433,7 @@ export class TrackingPage extends React.Component {
 		);
 
 		let eventDate = new Date(eventToUpdate.start);
-		await this.setState({ selectedDateRaw: eventDate });
+		await this.safeSetState({ selectedDateRaw: eventDate });
 
 		let eventToUpdateToFirebaseActivities;
 
@@ -2258,7 +2451,7 @@ export class TrackingPage extends React.Component {
 				}
 			}
 			await this.resetCalendarToCurrentMonth();
-			await this.setState({
+			await this.safeSetState({
 				currentMonthDate: this.state.selectedDateRaw,
 			});
 			this.scrollToThisWeek();
@@ -2282,7 +2475,10 @@ export class TrackingPage extends React.Component {
 		let strategyToUpdate = this.currentStrategy;
 		// console.log("this.currentStrategy.plans", this.currentStrategy.plans);
 		if (this.isFromPlanSetUp) {
-			let key = await this.dataModel.getActivityKey(this.userKey, eventToUpdateToFirebaseActivities);
+			let key = await this.dataModel.getActivityKey(
+				this.userKey,
+				eventToUpdateToFirebaseActivities
+			);
 			eventToUpdateToFirebaseActivities.key = key;
 		}
 		await this.dataModel.updatePlan(
@@ -2299,7 +2495,7 @@ export class TrackingPage extends React.Component {
 	};
 	//Submit the report when the activity is partially completed
 	OnSubmitPressed_PartiallyComplete = async () => {
-		this.setState({ isReportModalVis: false });
+		this.safeSetState({ isReportModalVis: false });
 		// await this.onSubmitPressed_UserAddedActivity();
 		this.onSubmitPressed_UserAddedActivity();
 		let eventToUpdate = this.onReportActivity;
@@ -2314,7 +2510,7 @@ export class TrackingPage extends React.Component {
 		);
 		let formattedThisMonth = parseInt(moment(new Date()).format().slice(5, 7));
 		let eventDate = new Date(eventToUpdate.start);
-		await this.setState({ selectedDateRaw: eventDate });
+		await this.safeSetState({ selectedDateRaw: eventDate });
 
 		let reportStatus;
 		let formattedStart = moment(this.state.reportStartTime)
@@ -2331,7 +2527,19 @@ export class TrackingPage extends React.Component {
 		}
 		// console.log("reportStatus", reportStatus);
 		// console.log("this.state.selectedActivity", this.state.selectedActivity);
-
+		eventToUpdate.isReported = true;
+		for (let event of this.userPlans) {
+			if (event.timeStamp === eventToUpdate.timeStamp) {
+				event.isReported = true;
+			}
+		}
+		let plansBuddleToUpdate = this.state.plansBuddle;
+		for (let event of plansBuddleToUpdate) {
+			if (event.timeStamp === eventToUpdate.timeStamp) {
+				event.isReported = true;
+			}
+		}
+		this.safeSetState({ plansBuddle: plansBuddleToUpdate });
 		if (reportStatus === "PARTIALLY_COMPLETE_TIME") {
 			// Add a new partially completed activity
 
@@ -2387,7 +2595,7 @@ export class TrackingPage extends React.Component {
 			let duration = moment.duration(
 				moment(formattedEndTime).diff(moment(formattedStartTime))
 			);
-			let durationMinutes = parseInt(duration.asMinutes()) % 60;
+			let durationMinutes = parseInt(duration.asMinutes());
 			eventToUpdate.newDuration = durationMinutes;
 			newActivity.newDuration = durationMinutes;
 			await this.dataModel.createNewPlan(this.userKey, newActivity);
@@ -2407,7 +2615,7 @@ export class TrackingPage extends React.Component {
 					}
 				}
 				await this.resetCalendarToCurrentMonth();
-				await this.setState({
+				await this.safeSetState({
 					currentMonthDate: this.state.selectedDateRaw,
 				});
 				this.onDailyReportClose();
@@ -2427,6 +2635,7 @@ export class TrackingPage extends React.Component {
 					}
 				}
 				await this.lastMonthEventReported(this.state.selectedDateRaw);
+				this.onDailyReportClose();
 				this.scrollToThisWeek();
 			}
 
@@ -2460,7 +2669,7 @@ export class TrackingPage extends React.Component {
 					}
 				}
 				await this.resetCalendarToCurrentMonth();
-				await this.setState({
+				await this.safeSetState({
 					currentMonthDate: this.state.selectedDateRaw,
 				});
 				this.scrollToThisWeek();
@@ -2487,7 +2696,10 @@ export class TrackingPage extends React.Component {
 		let strategyToUpdate = this.currentStrategy;
 		// console.log("this.currentStrategy.plans", this.currentStrategy.plans);
 		if (this.isFromPlanSetUp) {
-			let key = await this.dataModel.getActivityKey(this.userKey, eventToUpdateToFirebaseActivities);
+			let key = await this.dataModel.getActivityKey(
+				this.userKey,
+				eventToUpdateToFirebaseActivities
+			);
 			eventToUpdateToFirebaseActivities.key = key;
 		}
 		await this.dataModel.updatePlan(
@@ -2500,29 +2712,30 @@ export class TrackingPage extends React.Component {
 		await this.dataModel.updateStrategy(this.userKey, strategyToUpdate);
 		await this.dataModel.loadUserStrategies(this.userKey);
 		this.userStrategies = this.dataModel.getUserStrategies();
-		await this.processDailyReports_after();
 		let newValueForReload = this.state.valueForReload + 1;
-		await this.setState({valueForReload:newValueForReload})
+		await this.safeSetState({ valueForReload: newValueForReload });
+		await this.processDailyReports_after();
+		this.processDailyReports_after();
 	};
 
 	lastMonthEventReported = async (date) => {
 		this.monthCalRef.current.processEvents();
 		if (this.state.currentMonth === "THIS_MONTH") {
 			// console.log("nxt month pressed");
-			await this.setState({ currentMonth: "PAST_MONTH" });
-			await this.setState({
+			await this.safeSetState({ currentMonth: "PAST_MONTH" });
+			await this.safeSetState({
 				currentMonthEvents: this.combinedEventListLast,
 			});
-			await this.setState({
+			await this.safeSetState({
 				currentWeatherLists: this.lastMonthWeather,
 			});
-			// await this.setState({ pastMonthBtnDisabled: true });
+			// await this.safeSetState({ pastMonthBtnDisabled: true });
 			if (date) {
-				await this.setState({
+				await this.safeSetState({
 					currentMonthDate: date,
 				});
 			} else {
-				await this.setState({
+				await this.safeSetState({
 					currentMonthDate: new Date(
 						this.state.date.getFullYear(),
 						this.state.date.getMonth() + 1,
@@ -2531,9 +2744,9 @@ export class TrackingPage extends React.Component {
 				});
 			}
 
-			await this.setState({ nextMonthBtnDisabled: false });
-			await this.setState({ pastMonthBtnDisabled: true });
-			await this.setState({
+			await this.safeSetState({ nextMonthBtnDisabled: false });
+			await this.safeSetState({ pastMonthBtnDisabled: true });
+			await this.safeSetState({
 				currentMonthName: moment().subtract(1, "month").format("MMMM"),
 			});
 
@@ -2544,13 +2757,13 @@ export class TrackingPage extends React.Component {
 	};
 	onHideDetailPressed = () => {
 		if (this.state.calendarViewHeight === 145) {
-			this.setState({ calendarViewHeight: 435 });
-			this.setState({
+			this.safeSetState({ calendarViewHeight: 435 });
+			this.safeSetState({
 				hideIcon: <Ionicons name="chevron-up-circle" size={25} color="black" />,
 			});
 		} else {
-			this.setState({ calendarViewHeight: 145 });
-			this.setState({
+			this.safeSetState({ calendarViewHeight: 145 });
+			this.safeSetState({
 				hideIcon: (
 					<Ionicons name="chevron-down-circle" size={25} color="black" />
 				),
@@ -2565,8 +2778,8 @@ export class TrackingPage extends React.Component {
 			setTimeout(() => {
 				this._panel.show();
 			});
-			await this.setState({ isPanelHided: false });
-			await this.setState({
+			await this.safeSetState({ isPanelHided: false });
+			await this.safeSetState({
 				hideIcon2: (
 					<Ionicons name="chevron-down-circle" size={25} color="black" />
 				),
@@ -2576,8 +2789,8 @@ export class TrackingPage extends React.Component {
 			setTimeout(() => {
 				this._panel.hide();
 			});
-			await this.setState({ isPanelHided: true });
-			await this.setState({
+			await this.safeSetState({ isPanelHided: true });
+			await this.safeSetState({
 				hideIcon2: (
 					<Ionicons name="chevron-up-circle" size={25} color="black" />
 				),
@@ -2785,7 +2998,7 @@ export class TrackingPage extends React.Component {
 					style={{
 						flexDirection: "column",
 						justifyContent: "space-between",
-						width: "80%",
+						width: "100%",
 						paddingVertical: 0,
 						paddingHorizontal: 6,
 						height: "70%",
@@ -2822,11 +3035,16 @@ export class TrackingPage extends React.Component {
 						borderBottomRightRadius: 12,
 						borderTopRightRadius: 12,
 						borderWidth: 3,
+						position: "absolute",
+						right: 0,
+						width: "20%",
 						height: "100%",
-						backgroundColor: "black",
+						backgroundColor: this.state.reportBtnColor,
+						borderColor: this.state.reportBtnColor,
 						justifyContent: "center",
 						alignItems: "center",
 					}}
+					disabled={this.state.isReportBtnDisabled}
 					onPress={() => {
 						// item.isReported = true;
 						// console.log(
@@ -2837,16 +3055,17 @@ export class TrackingPage extends React.Component {
 						setTimeout(() => {
 							this.onMyActivityReportPressed(item), 1000;
 						});
-						this.setState({ isPlanDetailModalVis: false });
+						this.safeSetState({ isPlanDetailModalVis: false });
 					}}>
 					<Text
 						style={{
-							fontFamily: "RobotoRegular",
-							fontSize: 14,
+							fontFamily: "RobotoBoldBold",
+							fontSize: 12,
 							color: "white",
+							// fontWeight:"bold",
 							paddingHorizontal: 10,
 							alignSelf: "center",
-							backgroundColor: "black",
+							backgroundColor: this.state.reportBtnColor,
 						}}>
 						Report
 					</Text>
@@ -3276,18 +3495,56 @@ export class TrackingPage extends React.Component {
 		} else {
 			selectedStrategyPlans = this.state.plansBuddle;
 		}
-		// console.log("selectedStrategyPlans", selectedStrategyPlans);
+		console.log("CC selectedStrategyPlans", selectedStrategyPlans);
 		let accCompletion = 0;
+		let totalPlans = 0;
 		for (let event of selectedStrategyPlans) {
-			if (event.isActivityCompleted || event.partialStatus) {
-				accCompletion++;
+			if (!event.isDeleted) {
+				totalPlans++;
+			}
+			if (event.isReported) {
+				if (
+					(event.isActivityCompleted || event.partialStatus != "NONE") &&
+					event.isReported
+				) {
+					accCompletion++;
+				}
 			}
 		}
 		let avgCompletion = (
-			(accCompletion / selectedStrategyPlans.length) *
+			(accCompletion / totalPlans) *
 			100
 		).toFixed(2);
 		return avgCompletion;
+	};
+	calculatePercentageDuration = () => {
+		let selectedStrategyPlans;
+		// console.log("this.state.selectedStrategy", this.state.selectedStrategy);
+		if (this.currentStrategy) {
+			selectedStrategyPlans = this.currentStrategy.plans;
+		} else {
+			selectedStrategyPlans = [];
+		}
+		let accDuration = 0;
+		for (let event of selectedStrategyPlans) {
+			if (event.satisfactionScore && !event.isDeleted && event.isReported) {
+				if (event.isActivityCompleted ||
+					event.partialStatus != "NONE") {
+						if (event.newDuration) {
+							accDuration = accDuration + event.newDuration;
+						} else {
+							accDuration = accDuration + event.duration;
+						}
+					}
+
+			}
+		}
+		let percentageDuration = parseFloat((accDuration / 150).toFixed(2));
+		if (percentageDuration) {
+			return [percentageDuration, accDuration];
+		} else {
+			return [0, 0];
+		}
 	};
 	calculateComplete = () => {
 		let selectedStrategyPlans;
@@ -3297,10 +3554,15 @@ export class TrackingPage extends React.Component {
 			selectedStrategyPlans = this.state.plansBuddle;
 		}
 		let accCompletion = 0;
-		let totalPlans = selectedStrategyPlans.length;
+		let totalPlans = 0;
 		for (let event of selectedStrategyPlans) {
-			if (event.isActivityCompleted || event.partialStatus) {
-				accCompletion++;
+			if (event.isReported) {
+				if (event.isActivityCompleted || event.partialStatus != "NONE") {
+					accCompletion++;
+				}
+			}
+			if (!event.isDeleted) {
+				totalPlans++;
 			}
 		}
 		return [accCompletion, totalPlans];
@@ -3334,19 +3596,164 @@ export class TrackingPage extends React.Component {
 		}
 		let accDuration = 0;
 		for (let event of selectedStrategyPlans) {
-			if (event.satisfactionScore) {
-				if (event.newDuration) {
-					accDuration = accDuration + event.newDuration;
+
+			if (!event.isDeleted) {
+				let newTiming = "";
+				let timing;
+				if (event.newStart2) {
+					timing =
+						moment(event.newStart2).format("ddd").toUpperCase() +
+						" " +
+						event.newStart2.slice(11, 16) +
+						" - " +
+						event.newEnd2.slice(11, 16) +
+						" | " +
+						event.duration +
+						" MIN";
 				} else {
-					accDuration = accDuration + event.duration;
+					timing =
+						moment(event.start).format("ddd").toUpperCase() +
+						" " +
+						event.start.slice(11, 16) +
+						" - " +
+						event.end.slice(11, 16) +
+						" | " +
+						event.duration +
+						" MIN";
 				}
+				// let itemBlockStyle;
+				if (event.newStart) {
+					newTiming =
+					event.newStart.slice(11, 16) +
+						" - " +
+						event.newEnd.slice(11, 16) +
+						" | " +
+						event.newDuration +
+						" MIN";
+				}
+
+				if (!event.isReported) {
+					// itemBlockStyle = this.itemUnreportedBlockStyle(
+					//   item,
+					//   timing
+					// );
+				} else {
+					if (event.isActivityCompleted) {
+						// itemBlockStyle = this.itemCompletedBlockStyle(
+						// 	item,
+						// 	timing
+
+						// );
+						// itemBlockStyle = "COMPLETE";
+						accDuration += event.duration;
+					} else {
+						if (event.isOtherActivity) {
+						} else {
+							if (event.partialStatus) {
+								if (event.partialStatus === "TIME") {
+									// itemBlockStyle =
+									// 	this.itemPartialCompleteStyle_TIME(
+									// 		item,
+									// 		timing,
+									// 		newTiming
+									// 	);
+										accDuration += event.newDuration;
+								} else if (event.partialStatus === "ACTIVITY") {
+									// itemBlockStyle =
+									// 	this.itemPartialCompleteStyle_ACTIVITY(
+									// 		item,
+									// 		timing
+									// 	);
+										accDuration += event.duration;
+								} else if (event.partialStatus === "NONE") {
+									// itemBlockStyle = this.itemUnCompletedBlockStyle(
+									// 	item,
+									// 	timing
+									// );
+									// accDuration += event.duration;
+								} else {
+									// itemBlockStyle =
+									// 	this.itemPartialCompleteStyle_TIME_ACTIVITY(
+									// 		item,
+									// 		timing,
+									// 		newTiming
+									// 	);
+									accDuration += event.newDuration;
+								}
+							} else {
+							}
+						}
+					}
+				}
+
+				// return itemBlockStyle;
 			}
 		}
 		return accDuration;
 	};
+	onNextButtonPressedReviewScreen = () => {
+		if (this.state.evaluationPage_Index === 2) {
+			// this.submitStrategyEvaluation();
+			this.evaluationSwipeRef.current.goNext();
+		} else if (this.state.evaluationPage_Index === 3) {
+			if (this.state.evaluationPage_FOUR_value === "Yes") {
+				this.evaluationSwipeRef.current.goNext();
+			} else {
+				// "Direct to new tracking page with same plans"
+				this.submitStrategyEvaluation();
+				this.props.navigation.navigate("PlanOnCalendar", {
+					userEmail: this.userEmail,
+					userInfo: this.userInfo,
+					userStrategies: this.userStrategies,
+					eventsLastMonth: this.eventsLastMonth,
+					eventsThisMonth: this.eventsThisMonth,
+					eventsNextMonth: this.eventsNextMonth,
+					fullEventList: this.fullEventList,
+					lastMonthWeather: this.lastMonthWeather,
+					thisMonthWeather: this.thisMonthWeather,
+					nextMonthWeather: this.nextMonthWeather,
+					userActivityList: this.props.route.params.userActivityList,
+					currentStrategy: this.currentStrategy,
+					keywords: this.currentStrategy.keywords,
+					plans: this.currentStrategy.plans,
+					title: this.currentStrategy.title,
+					// isFromPlanSetUp: false
+				});
+			}
+		} else if (this.state.evaluationPage_Index === 4) {
+			if (this.state.evaluationPage_FIVE_value === "Yes") {
+				this.evaluationSwipeRef.current.goNext();
+			} else {
+				//Start from scratch
+				this.submitStrategyEvaluation();
+				this.props.navigation.navigate("PlanOnCalendar", {
+					userEmail: this.userEmail,
+					userInfo: this.userInfo,
+					userStrategies: this.userStrategies,
+					eventsLastMonth: this.eventsLastMonth,
+					eventsThisMonth: this.eventsThisMonth,
+					eventsNextMonth: this.eventsNextMonth,
+					fullEventList: this.fullEventList,
+					lastMonthWeather: this.lastMonthWeather,
+					thisMonthWeather: this.thisMonthWeather,
+					nextMonthWeather: this.nextMonthWeather,
+					userActivityList: this.props.route.params.userActivityList,
+					// isFromPlanSetUp: false
+				});
+			}
+		} else {
+			this.evaluationSwipeRef.current.goNext();
+		}
+	};
+	submitStrategyEvaluation = () => {
+		let strategyToUpdate = this.currentStrategy;
+		strategyToUpdate.keywords = this.state.keywordsBuddle;
+		strategyToUpdate.rating = this.state.satisfactionScoreEV;
+		// console.log("strategyToUpdate",strategyToUpdate);
+		this.dataModel.updateStrategy(this.userKey, strategyToUpdate);
+	};
 
 	render() {
-		// console.log("this.state.selectedKeywords", this.state.selectedKeywords);
 		let firstSlidePanelPage = (
 			<View
 				style={{
@@ -3398,7 +3805,7 @@ export class TrackingPage extends React.Component {
 									borderWidth: 0,
 									backgroundColor: "white",
 									borderColor: "grey",
-									borderWidth: 2,
+									// borderWidth: 2,
 									borderRadius: 15,
 								}}
 								selectStyle={{ borderWidth: 0 }}
@@ -3441,14 +3848,20 @@ export class TrackingPage extends React.Component {
 								data={this.state.activityData}
 								initValue={"Select Here"}
 								onChange={async (item) => {
-									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
-									// this.setState({ reportTitle: item.label})
+									console.log("activityData:", this.state.activityData);
+									console.log("item:", item);
+									this.safeSetState({ isActivityTypeSelected: true });
+									this.safeSetState({ selectedActivity: item.label });
+									// this.safeSetState({ reportTitle: item.label})
 									// console.log("item.label",item.label);
 								}}
 							/>
 						</View>
 					</View>
+					{(() => {
+        				console.log("Logged Past Modal 1");
+        				return null; // Don't render anything
+    				})()}
 					<View
 						style={{
 							justifyContent: "space-between",
@@ -3485,10 +3898,11 @@ export class TrackingPage extends React.Component {
 								ref={(input) => {
 									this.textInput = input;
 								}}
+								maxLength={12}
 								placeholder="new activity"
 								value={this.state.userDefinedActivityText}
 								onChangeText={(text) =>
-									this.setState({ userDefinedActivityText: text })
+									this.safeSetState({ userDefinedActivityText: text })
 								}></TextInput>
 							<View
 								style={{
@@ -3567,7 +3981,7 @@ export class TrackingPage extends React.Component {
 								display="default"
 								onChange={async (e, date) => {
 									this.pickTheDate(date);
-									this.setState({ dateTimePickerDate: date });
+									this.safeSetState({ dateTimePickerDate: date });
 								}}
 								style={{
 									width: 80,
@@ -3709,13 +4123,14 @@ export class TrackingPage extends React.Component {
 							textAlign: "center",
 							fontFamily: "RobotoBoldItalic",
 						}}
+						maxLength={12}
 						placeholder="Add Keywords"
 						ref={(input) => {
 							this.KeyWordTextInput = input;
 						}}
 						value={this.state.userDefinedKeywords}
 						onChangeText={(text) => {
-							this.setState({ userDefinedKeywords: text });
+							this.safeSetState({ userDefinedKeywords: text });
 						}}
 					/>
 					<View
@@ -3902,9 +4317,25 @@ export class TrackingPage extends React.Component {
 								},
 							]}
 							onPress={() => {
+								if (this.state.reportCnt != 0) {
+									Alert.alert(
+										"You have unfinished reports",
+										"Please finish all your reports before reviewing planning strategy",
+										[
+											{
+												text: "Cancel",
+												onPress: () => console.log("Cancel Pressed"),
+												style: "cancel",
+											},
+											{ text: "OK", onPress: () => console.log("OK Pressed") },
+										]
+									);
+									return;
+								}
 								this.evaluatePanelPopup();
+								// this.safeSetState({isReviewBtnDisabled:true})
 								this.mainContentSwiperRef.current.goToPage(1, true);
-								this.panelSwiperRef.current.goToPage(0, true);
+								// this.panelSwiperRef.current.goToPage(0, true);
 							}}>
 							{/* <MaterialIcons name="all-inclusive" size={20} color={GREEN} /> */}
 							<FontAwesome5 name="flag-checkered" size={18} color={GREEN} />
@@ -3945,7 +4376,7 @@ export class TrackingPage extends React.Component {
 								alignItems: "flex-start",
 								flexDirection: "column",
 							}}
-							onPress={() => this.setState({ isStrategyDetailModalVis: true })}>
+							onPress={() => this.safeSetState({ isStrategyDetailModalVis: true })}>
 							<View
 								style={{
 									flexDirection: "row",
@@ -4025,9 +4456,9 @@ export class TrackingPage extends React.Component {
 									paddingLeft: "5%",
 									paddingRight: "5%",
 								}}>
-								{this.state.keywordsBuddle.map((item) => {
+								{this.state.keywordsBuddle.map((item, index) => {
 									return (
-										<View
+										<View key = {item.id !== undefined ? item.id : `index-${index}`}
 											style={{
 												borderRadius: 20,
 												height: 32,
@@ -4153,7 +4584,7 @@ export class TrackingPage extends React.Component {
 						alignItems: "center",
 						justifyContent: "flex-start",
 					}}>
-					{this.userStrategies.map((item) => {
+					{this.userStrategies.map((item, index) => {
 						let startDate = new Date(item.startDate);
 						let endDate = new Date(item.endDate);
 						let isTodayInBetween;
@@ -4169,14 +4600,20 @@ export class TrackingPage extends React.Component {
 
 						let completionRate;
 						let completionCnt = 0;
+						let totalPlans = 0;
 
 						for (let event of item.plans) {
-							if (event.isActivityCompleted) {
-								completionCnt++;
+							if (event.isReported) {
+								if (event.isActivityCompleted || event.partialStatus != "NONE") {
+									completionCnt++;
+								}
+							}
+							if (!event.isDeleted) {
+								totalPlans++;
 							}
 						}
 						completionRate = (
-							(completionCnt / item.plans.length) *
+							(completionCnt / totalPlans) *
 							100
 						).toFixed(2);
 
@@ -4185,16 +4622,18 @@ export class TrackingPage extends React.Component {
 						let accDuration = 0;
 						for (let event of item.plans) {
 							if (event.satisfactionScore) {
-								satisfaction = satisfaction + parseInt(event.satisfactionScore);
-								satisfactionCnt++;
-								accDuration += event.duration;
+								if (event.partialStatus != "NONE" || event.isActivityCompleted) {
+									satisfaction = satisfaction + parseInt(event.satisfactionScore);
+									satisfactionCnt++;
+									accDuration += event.duration;
+								}
 							}
 						}
 						let avgSatisfaction = (satisfaction / satisfactionCnt).toFixed(2);
 						// console.log("isTodayInBetween", item.title, isTodayInBetween);
 
 						return (
-							<View
+							<View key = {item.id !== undefined ? item.id : `index-${index}`}
 								style={[
 									// generalStyles.shadowStyle,
 									{
@@ -4226,12 +4665,12 @@ export class TrackingPage extends React.Component {
 										flexDirection: "column",
 									}}
 									onPress={async () =>
-										// this.setState({ isStrategyDetailModalVis: true })
+										// this.safeSetState({ isStrategyDetailModalVis: true })
 										{
 											setTimeout(() => {
 												this._panel.hide();
 											});
-											this.setState({
+											this.safeSetState({
 												hideIcon2: (
 													<Ionicons
 														name="chevron-up-circle"
@@ -4240,7 +4679,7 @@ export class TrackingPage extends React.Component {
 													/>
 												),
 											});
-											this.setState({ isPanelHided: true });
+											this.safeSetState({ isPanelHided: true });
 
 											let thisMonthNum = parseInt(
 												moment(new Date()).format().slice(5, 7)
@@ -4250,36 +4689,36 @@ export class TrackingPage extends React.Component {
 											);
 											console.log("selectedMonthNum", selectedMonthNum);
 											console.log("thisMonthNum", thisMonthNum);
-											this.setState({ selectedStrategy: item });
-											this.setState({ selectedKeywords: item.keywords });
-											this.setState({ selectedStrategyPlans: item.plans });
+											this.safeSetState({ selectedStrategy: item });
+											this.safeSetState({ selectedKeywords: item.keywords });
+											this.safeSetState({ selectedStrategyPlans: item.plans });
 											if (thisMonthNum > selectedMonthNum) {
 												this.pastMonthBtnPressed();
-												this.setState({
+												this.safeSetState({
 													selectedStrategyDate: item.startDate,
 												});
-												this.setState({
+												this.safeSetState({
 													monthCalStrategyStartDate: item.startDate,
 												});
 												if (thisMonthNum != selectedMonthNum + 2) {
 													let eventDate = new Date(item.startDate);
-													await this.setState({ selectedDateRaw: eventDate });
-													await this.setState({
+													await this.safeSetState({ selectedDateRaw: eventDate });
+													await this.safeSetState({
 														currentMonthDate: this.state.selectedDateRaw,
 													});
 													this.scrollToThisWeek();
 												}
 											} else if (thisMonthNum < selectedMonthNum) {
 												this.nextMonthBtnPressed();
-												this.setState({
+												this.safeSetState({
 													selectedStrategyDate: item.startDate,
 												});
-												this.setState({
+												this.safeSetState({
 													monthCalStrategyStartDate: item.startDate,
 												});
 												let eventDate = new Date(item.startDate);
-												await this.setState({ selectedDateRaw: eventDate });
-												await this.setState({
+												await this.safeSetState({ selectedDateRaw: eventDate });
+												await this.safeSetState({
 													currentMonthDate: this.state.selectedDateRaw,
 												});
 												this.scrollToThisWeek();
@@ -4289,16 +4728,16 @@ export class TrackingPage extends React.Component {
 												}
 											}
 
-											this.setState({
+											this.safeSetState({
 												selectedStrategyDate: item.startDate,
 											});
-											this.setState({
+											this.safeSetState({
 												monthCalStrategyStartDate: item.startDate,
 											});
 											if (thisMonthNum != selectedMonthNum + 2) {
 												let eventDate = new Date(item.startDate);
-												await this.setState({ selectedDateRaw: eventDate });
-												await this.setState({
+												await this.safeSetState({ selectedDateRaw: eventDate });
+												await this.safeSetState({
 													currentMonthDate: this.state.selectedDateRaw,
 												});
 												this.scrollToThisWeek();
@@ -4472,9 +4911,9 @@ export class TrackingPage extends React.Component {
 											paddingRight: "5%",
 											alignItems: "center",
 										}}>
-										{item.keywords.map((item) => {
+										{item.keywords.map((item, index) => {
 											return (
-												<View
+												<View key = {item.id !== undefined ? item.id : `index-${index}`}
 													style={{
 														borderRadius: 20,
 														height: 32,
@@ -4558,14 +4997,14 @@ export class TrackingPage extends React.Component {
 							alignItems: "center",
 						},
 					]}>
-					{/* Report option switch selector */}
+					{/* Top title & Progress bar */}
 					<View
 						style={{
 							width: "100%",
 							flexDirection: "row",
 							justifyContent: "space-between",
 							alignItems: "center",
-							marginTop: 5,
+							marginTop: 10,
 							padding: 15,
 						}}>
 						{/* <Text style={{ fontFamily: "RobotoBoldItalic", fontSize: 18 }}>
@@ -4591,77 +5030,303 @@ export class TrackingPage extends React.Component {
 
 								height: 20,
 								alignItems: "center",
+								justifyContent: "center",
 								flexDirection: "row",
 							}}>
-							<SwitchSelector
-								options={REPORT_OPTIONS}
-								height={20}
-								buttonColor="black"
-								style={{
-									borderWidth: 2,
-									borderRadius: 40,
-									padding: 1,
-									borderColor: "black",
-								}}
-								textStyle={{
-									fontSize: 10,
-									fontFamily: "RobotoRegular",
-									color: "black",
-								}}
-								selectedTextStyle={{
-									fontSize: 10,
-									fontWeight: "bold",
-									color: "white",
-								}}
-								borderWidth={0}
-								initial={0}
-								onPress={(value) => {
-									if (value == "daily") {
-										this.setState({ isDailyReportVis: "flex" });
-										this.setState({ isActivityRecordsVis: "none" });
-										this.isReportFromPopup = true;
-									} else {
-										this.setState({ isDailyReportVis: "none" });
-										this.setState({ isActivityRecordsVis: "flex" });
-
-										this.isReportFromPopup = false;
-									}
-								}}
-							/>
 							<View
 								style={{
-									position: "absolute",
-									top: -5,
-									right: -5,
-									display: this.state.isBadgeVis,
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "space-between",
+									width: "100%",
 								}}>
-								<Badge
-									label={this.state.reportCnt}
-									size={16}
-									backgroundColor={"red"}
-								/>
+								<Text style={{ fontFamily: "RobotoBoldItalic", fontSize: 18 }}>
+									Current Strategy
+								</Text>
+								<View
+									style={{
+										flexDirection: "column",
+										width: 120,
+										justifyContent: "center",
+										alignItems: "flex-end",
+										marginTop: 5,
+									}}>
+									<Progress.Bar
+										progress={this.calculatePercentageDuration()[0]}
+										width={120}
+										color={"black"}
+									/>
+									<Text
+										style={{
+											fontWeight: "bold",
+											fontSize: 8,
+											position: "absolute",
+											top: 10,
+										}}>
+										{this.calculatePercentageDuration()[1]}/150 min
+									</Text>
+								</View>
 							</View>
 						</View>
 						{/* <Text style={{ fontFamily: "RobotoBoldBold", fontSize: 13 }}>
               {this.state.accumulatedMinutes}/150 minutes remains
             </Text> */}
+					</View>
+					{/* Current Planning Strategy */}
+					<View
+						style={[
+							generalStyles.shadowStyle,
+							{
+								height: 81,
+								width: 335,
+								borderColor: GREEN,
+								borderWidth: 2,
+								borderRadius: 20,
+								marginTop: "2%",
+								flexDirection: "row",
+								backgroundColor: "white",
+							},
+						]}>
+						<TouchableOpacity
+							style={{
+								height: "100%",
+								width: "100%",
+
+								// borderRightColor: "black",
+								// borderRightWidth: 2,
+								paddingLeft: 0,
+								paddingVertical: 0,
+								justifyContent: "space-between",
+								alignItems: "flex-start",
+								flexDirection: "column",
+							}}
+							onPress={() => this.safeSetState({ isStrategyDetailModalVis: true })}>
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "flex-start",
+									width: "100%",
+									height: "50%",
+									borderTopLeftRadius: 18,
+									borderTopRightRadius: 18,
+									backgroundColor: GREEN,
+								}}>
+								<View
+									style={{
+										flexDirection: "row",
+										alignItems: "center",
+										justifyContent: "center",
+									}}>
+									<Text
+										style={{
+											fontFamily: "RobotoBoldBlack",
+											fontSize: 15,
+											marginBottom: 0,
+											marginRight: 10,
+											alignItems: "center",
+											justifyContent: "center",
+											marginLeft: "10%",
+											color: "white",
+											alignSelf: "center",
+											textAlign: "center",
+										}}>
+										{this.state.planStrategyName}
+									</Text>
+								</View>
+								<View
+									style={{
+										flexDirection: "column",
+										justifyContent: "center",
+										// backgroundColor: "red",
+										position:"absolute",
+										right:10,
+										alignItems: "center",
+										backgroundColor: "white",
+										borderRadius: 20,
+										paddingHorizontal: 10,
+									}}>
+									<Text
+										style={{
+											fontSize: 12,
+											fontFamily: "RobotoBoldBold",
+											textAlign: "center",
+											marginTop: 0,
+											color: GREEN,
+										}}>
+										{this.state.strategyDuration}
+									</Text>
+								</View>
+								{/* <View style={{ position: "absolute", right: 5 }}>
+									<FontAwesome5 name="play-circle" size={18} color="white" />
+								</View> */}
+							</View>
+							<ScrollView
+								horizontal={true}
+								style={{
+									width: "100%",
+									height: "50%",
+									flexDirection: "row",
+								}}
+								contentContainerStyle={{
+									alignItems: "center",
+									paddingLeft: "5%",
+									paddingRight: "5%",
+								}}>
+								{this.state.keywordsBuddle.map((item, index) => {
+									return (
+										<View key = {item.id !== undefined ? item.id : `index-${index}`}
+											style={{
+												borderRadius: 20,
+												height: 32,
+												// backgroundColor: "#E7E7E7",
+												marginRight: 2,
+												padding: 5,
+											}}>
+											<Text
+												style={{
+													color: "black",
+													fontWeight: "bold",
+													color: "#1AB700",
+													fontSize: 13,
+												}}>
+												# {item.title}
+											</Text>
+										</View>
+									);
+								})}
+							</ScrollView>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={{
+								position: "absolute",
+								borderBottomRightRadius: 18,
+								borderTopRightRadius: 18,
+								left: 250,
+								top: 0,
+								bottom: 0,
+								right: 0,
+								backgroundColor: "white",
+								borderColor: GREEN,
+								borderLeftWidth: 2,
+								justifyContent: "space-between",
+								alignItems: "center",
+								paddingVertical: 15,
+								display: this.state.isReviewBtnVis,
+							}}
+							disabled={this.state.isReviewBtnDisabled}
+							onPress={() => {
+								if (this.state.reportCnt != 0) {
+									Alert.alert(
+										"You have unfinished reports",
+										"Please finish all your reports before reviewing planning strategy",
+										[
+											{
+												text: "Cancel",
+												onPress: () => console.log("Cancel Pressed"),
+												style: "cancel",
+											},
+											{ text: "OK", onPress: () => console.log("OK Pressed") },
+										]
+									);
+									return;
+								}
+								this.safeSetState({ isPanelVis: "flex" });
+								this.evaluatePanelPopup();
+								this.mainContentSwiperRef.current.goToPage(1, true);
+								this.safeSetState({ isReviewPopVis: false });
+								// this.panelSwiperRef.current.goToPage(0, true);
+							}}>
+							<FontAwesome5 name="flag-checkered" size={18} color={GREEN} />
+							<Text
+								style={{
+									fontFamily: "RobotoBoldItalic",
+									color: GREEN,
+									fontSize: 18,
+								}}>
+								Review
+							</Text>
+						</TouchableOpacity>
+					</View>
+					<View
+						style={{
+							width: "90%",
+							marginTop: 30,
+							flexDirection: "row",
+							justifyContent: "space-between",
+						}}>
 						<TouchableOpacity
 							style={{
 								alignItems: "center",
 								justifyContent: "center",
-								marginLeft: 10,
-								flex: 1,
+								marginLeft: 0,
 							}}
 							onPress={() => {
 								this.onAddActivityPressed();
 							}}>
 							<Ionicons
 								name="ios-add-circle"
-								size={25}
+								size={27}
 								color={"black"}
 								// style={{flex:0.1}}
 							/>
 						</TouchableOpacity>
+						<View
+							style={{
+								position: "absolute",
+								top: -5,
+								left: 110,
+								display: this.state.isBadgeVis,
+								zIndex: 1,
+							}}>
+							<Badge
+								label={this.state.reportCnt.toString()}
+								size={16}
+								backgroundColor={"red"}
+							/>
+						</View>
+						<SwitchSelector
+							options={REPORT_OPTIONS}
+							height={23}
+							buttonColor="white"
+							style={{
+								// borderWidth: 2,
+								borderRadius: 40,
+								padding: 1,
+								borderColor: "black",
+								width: "90%",
+							}}
+							textStyle={{
+								fontSize: 16,
+								fontFamily: "RobotoBoldItalic",
+								color: "grey",
+							}}
+							selectedTextStyle={{
+								fontSize: 16,
+								fontFamily: "RobotoBoldItalic",
+								color: "black",
+							}}
+							borderWidth={0}
+							initial={0}
+							onPress={(value) => {
+								if (value === "report") {
+									this.safeSetState({ isDailyReportVis: "flex" });
+									this.safeSetState({ isActivityRecordsVis: "none" });
+									this.safeSetState({ isOverviewVis: "none" });
+									this.isReportFromPopup = true;
+								} else if (value === "records") {
+									this.safeSetState({ isDailyReportVis: "none" });
+									this.safeSetState({ isActivityRecordsVis: "flex" });
+									this.safeSetState({ isOverviewVis: "none" });
+									this.isReportFromPopup = false;
+								} else {
+									this.safeSetState({ isDailyReportVis: "none" });
+									this.safeSetState({ isActivityRecordsVis: "none" });
+									this.safeSetState({ isOverviewVis: "flex" });
+									this.isReportFromPopup = false;
+								}
+							}}
+						/>
 					</View>
 					{/* Planned Activity records  */}
 					<View
@@ -4784,7 +5449,7 @@ export class TrackingPage extends React.Component {
 										item.duration +
 										" MIN";
 									let itemUnreportedBlockStyle = (
-										<View
+										<View key = {item.id || item.start}
 											style={[
 												{
 													width: "100%",
@@ -4866,100 +5531,21 @@ export class TrackingPage extends React.Component {
 							}
 						/>
 					</View>
-				</View>
-			</View>
-		);
-		let summaryPage = (
-			<View
-				style={{
-					backgroundColor: "white",
-					width: "100%",
-					height: "100%",
-					justifyContent: "flex-start",
-					alignItems: "center",
-				}}>
-				{/* Body */}
-				<View
-					style={[
-						// generalStyles.shadowStyle,
-						{
-							width: "98%",
-							height: "90%",
-							backgroundColor: "white",
-							marginTop: 0,
-							borderRadius: 20,
-							justifyContent: "flex-start",
-							alignItems: "center",
-							flexDirection: "column",
-						},
-					]}>
+					{/* Strategy Overview */}
 					<View
 						style={{
 							width: "100%",
-							flexDirection: "row",
-							justifyContent: "flex-start",
-							alignItems: "center",
-							padding: 15,
-							paddingBottom: 0,
-							marginTop: 0,
+							height: 280,
+							paddingHorizontal: 15,
+							display: this.state.isOverviewVis,
 						}}>
-						<TouchableOpacity
-							style={{
-								alignItems: "flex-start",
-								justifyContent: "center",
-								marginRight: 10,
-							}}
-							onPress={() => {
-								this.onHideDetailPressed();
-							}}>
-							{this.state.hideIcon}
-						</TouchableOpacity>
-						<View
-							style={{
-								flexDirection: "row",
-								justifyContent: "space-between",
-								alignItems: "center",
-								height: 45,
-							}}>
-							<Text
-								style={{
-									fontFamily: "RobotoBoldItalic",
-									fontSize: 18,
-									marginRight: 10,
-								}}>
-								{this.state.selectedStrategy.title}
-							</Text>
-							<View
-								style={{
-									flexDirection: "column",
-									justifyContent: "center",
-									// backgroundColor: "red",
-									alignItems: "center",
-									backgroundColor: "black",
-									borderRadius: 20,
-									paddingHorizontal: 10,
-								}}>
-								<Text
-									style={{
-										fontSize: 12,
-										fontFamily: "RobotoBoldBold",
-										textAlign: "center",
-										marginTop: 0,
-										color: "white",
-									}}>
-									{this.state.selectedStrategy.startDate} →{" "}
-									{this.state.selectedStrategy.endDate}
-								</Text>
-							</View>
-						</View>
-					</View>
-					<View style={{ height: 300 }}>
 						<ScrollView
 							style={{ width: "100%", zIndex: 1 }}
 							contentContainerStyle={{
 								justifyContent: "flex-start",
 								alignItems: "center",
 							}}>
+							{/* Strategy summaryPage */}
 							<View
 								style={[
 									generalStyles.shadowStyle,
@@ -5058,15 +5644,14 @@ export class TrackingPage extends React.Component {
 											height: "20%",
 											flexDirection: "row",
 										}}>
-										<Ionicons name="heart-circle" size={15} color="black" />
-
+										<AntDesign name="like1" size={15} color="black" />
 										<Text
 											style={{
 												fontFamily: "RobotoBoldBold",
 												fontSize: 12,
 												marginLeft: 2,
 											}}>
-											Satisfaction
+											Rating
 										</Text>
 									</View>
 									<View
@@ -5080,10 +5665,12 @@ export class TrackingPage extends React.Component {
 										<Text
 											style={{
 												fontFamily: "RobotoBoldBold",
-												fontSize: 18,
+												fontSize: 32,
 												fontFamily: "RobotoBoldItalic",
 											}}>
-											{this.calculateSatisfaction()}
+											{this.state.selectedStrategy.rating
+												? this.state.selectedStrategy.rating
+												: "--"}
 										</Text>
 									</View>
 								</View>
@@ -5143,6 +5730,7 @@ export class TrackingPage extends React.Component {
 										marginTop: 10,
 									},
 								]}>
+								{/* Keywords title */}
 								<View
 									style={{
 										width: "100%",
@@ -5163,6 +5751,7 @@ export class TrackingPage extends React.Component {
 										</Text>
 									</View>
 								</View>
+								{/* Keywords list */}
 								<View
 									style={{
 										flexDirection: "row",
@@ -5171,13 +5760,363 @@ export class TrackingPage extends React.Component {
 										marginTop: "2%",
 										paddingHorizontal: "5%",
 									}}>
-									{this.state.selectedKeywords.map((item) => {
+									{this.state.selectedKeywords.map((item, index) => {
 										return (
-											<View
+											<View key = {item.id !== undefined ? item.id : `index-${index}`}
 												style={{
 													height: 25,
 													borderRadius: 20,
-													backgroundColor: "black",
+													backgroundColor: item.color
+														? COLORS[item.color]
+														: "black",
+													justifyContent: "space-between",
+													alignItems: "center",
+													alignSelf: "center",
+													marginBottom: 5,
+													marginRight: 5,
+													paddingHorizontal: 2,
+													flexDirection: "row",
+												}}>
+												<Text
+													style={{
+														fontFamily: "RobotoBoldBlack",
+														color: "white",
+														paddingHorizontal: 20,
+														fontSize: 12,
+													}}>
+													# {item.title}
+												</Text>
+											</View>
+										);
+									})}
+								</View>
+							</View>
+						</ScrollView>
+					</View>
+				</View>
+			</View>
+		);
+		let summaryPage = (
+			<View
+				style={{
+					backgroundColor: "white",
+					width: "100%",
+					height: "100%",
+					justifyContent: "flex-start",
+					alignItems: "center",
+				}}>
+				{/* Body */}
+				<View
+					style={[
+						// generalStyles.shadowStyle,
+						{
+							width: "98%",
+							height: "90%",
+							backgroundColor: "white",
+							marginTop: 0,
+							borderRadius: 20,
+							justifyContent: "flex-start",
+							alignItems: "center",
+							flexDirection: "column",
+						},
+					]}>
+					<View
+						style={{
+							width: "100%",
+							flexDirection: "row",
+							justifyContent: "space-between",
+							alignItems: "center",
+							padding: 15,
+							paddingBottom: 0,
+							marginTop: 5,
+						}}>
+						<TouchableOpacity
+							style={{
+								alignItems: "flex-start",
+								justifyContent: "center",
+								marginRight: 10,
+							}}
+							onPress={() => {
+								this.onHideDetailPressed();
+							}}>
+							{this.state.hideIcon}
+						</TouchableOpacity>
+						<View
+							style={{
+								flexDirection: "column",
+								justifyContent: "space-between",
+								alignItems: "center",
+								height: 45,
+								marginBottom: "2%",
+							}}>
+							<Text
+								style={{
+									fontFamily: "RobotoBoldItalic",
+									fontSize: 18,
+									marginRight: 5,
+								}}>
+								{this.state.selectedStrategy.title}
+							</Text>
+							<View
+								style={{
+									flexDirection: "column",
+									justifyContent: "center",
+									// backgroundColor: "red",
+									alignItems: "center",
+									backgroundColor: "black",
+									borderRadius: 20,
+									paddingHorizontal: 10,
+								}}>
+								<Text
+									style={{
+										fontSize: 12,
+										fontFamily: "RobotoBoldBold",
+										textAlign: "center",
+										marginTop: 0,
+										color: "white",
+									}}>
+									{this.state.selectedStrategy.startDate} →{" "}
+									{this.state.selectedStrategy.endDate}
+								</Text>
+							</View>
+						</View>
+						<TouchableOpacity
+							onPress={() => this.safeSetState({ isPreStrategyVis: true })}
+							disabled={this.state.isSelectStrategyDisable}>
+							<Ionicons name="list-circle" size={26} color="black" />
+						</TouchableOpacity>
+					</View>
+					<View style={{ height: 400 }}>
+						<ScrollView
+							style={{ width: "100%", zIndex: 1 }}
+							contentContainerStyle={{
+								justifyContent: "flex-start",
+								alignItems: "center",
+							}}>
+							{/* Strategy summaryPage */}
+							<View
+								style={[
+									generalStyles.shadowStyle,
+									{
+										width: "90%",
+										height: 100,
+										flexDirection: "row",
+										backgroundColor: "white",
+										flexDirection: "row",
+										justifyContent: "space-between",
+										marginTop: 10,
+										borderRadius: 20,
+										paddingVertical: 10,
+										zIndex: 1,
+									},
+								]}>
+								<View
+									style={[
+										{
+											height: "100%",
+											width: "33%",
+											backgroundColor: "white",
+											borderTopLeftRadius: 20,
+											borderBottomLeftRadius: 20,
+											flexDirection: "column",
+											borderRightWidth: 2,
+											borderColor: "#D8D8D8",
+										},
+									]}>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											height: "20%",
+											flexDirection: "row",
+										}}>
+										<Ionicons name="checkmark-circle" size={15} color="black" />
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 12,
+												marginLeft: 2,
+											}}>
+											Completion
+										</Text>
+									</View>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "space-between",
+											alignItems: "center",
+											height: "80%",
+											paddingVertical: 8,
+										}}>
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 15,
+												fontFamily: "RobotoBoldItalic",
+											}}>
+											{this.calculateCompletion()}%
+										</Text>
+										<View
+											style={{
+												height: 2,
+												width: "30%",
+												backgroundColor: "black",
+											}}></View>
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 15,
+												fontFamily: "RobotoBoldItalic",
+											}}>
+											{this.calculateComplete()[0]} /{" "}
+											{this.calculateComplete()[1]}
+										</Text>
+									</View>
+								</View>
+								<View
+									style={[
+										{
+											height: "100%",
+											width: "33%",
+											backgroundColor: "white",
+											borderRightWidth: 2,
+											borderColor: "#D8D8D8",
+										},
+									]}>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											height: "20%",
+											flexDirection: "row",
+										}}>
+										<AntDesign name="like1" size={15} color="black" />
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 12,
+												marginLeft: 2,
+											}}>
+											Rating
+										</Text>
+									</View>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											height: "80%",
+											paddingVertical: 10,
+										}}>
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 32,
+												fontFamily: "RobotoBoldItalic",
+											}}>
+											{this.state.selectedStrategy.rating
+												? this.state.selectedStrategy.rating
+												: "--"}
+										</Text>
+									</View>
+								</View>
+								<View
+									style={[
+										{
+											height: "100%",
+											width: "33%",
+											backgroundColor: "white",
+											borderRadius: 20,
+										},
+									]}>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											height: "20%",
+											flexDirection: "row",
+										}}>
+										<Ionicons name="timer" size={15} color="black" />
+
+										<Text
+											style={{
+												fontFamily: "RobotoBoldBold",
+												fontSize: 12,
+												marginLeft: 2,
+											}}>
+											Activity Level
+										</Text>
+									</View>
+									<View
+										style={{
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											height: "80%",
+											paddingVertical: 10,
+										}}>
+										<Text
+											style={{
+												fontSize: 18,
+												fontFamily: "RobotoBoldItalic",
+											}}>
+											{this.calculateTotalDuration()} min
+										</Text>
+									</View>
+								</View>
+							</View>
+							<View
+								style={[
+									// generalStyles.shadowStyle,
+									{
+										width: "95%",
+										backgroundColor: "white",
+										borderRadius: 20,
+										marginTop: 10,
+									},
+								]}>
+								{/* Keywords title */}
+								<View
+									style={{
+										width: "100%",
+										justifyContent: "flex-start",
+										flexDirection: "row",
+										marginTop: 10,
+										marginLeft: "5%",
+									}}>
+									<View style={{ flexDirection: "row" }}>
+										<FontAwesome name="asterisk" size={15} color="black" />
+										<Text
+											style={{
+												fontWeight: "bold",
+												fontSize: 12,
+												marginLeft: "5%",
+											}}>
+											Keywords
+										</Text>
+									</View>
+								</View>
+								{/* Keywords list */}
+								<View
+									style={{
+										flexDirection: "row",
+										flexWrap: "wrap",
+										alignItems: "center",
+										marginTop: "2%",
+										paddingHorizontal: "5%",
+									}}>
+									{this.state.selectedKeywords.map((item, index) => {
+										return (
+											<View key = {item.id !== undefined ? item.id : `index-${index}`}
+												style={{
+													height: 25,
+													borderRadius: 20,
+													backgroundColor: item.color
+														? COLORS[item.color]
+														: "black",
 													justifyContent: "space-between",
 													alignItems: "center",
 													alignSelf: "center",
@@ -5209,14 +6148,24 @@ export class TrackingPage extends React.Component {
 									}}>
 									<View style={{ flexDirection: "row" }}>
 										<MaterialIcons name="event-note" size={15} color="black" />
-										<Text
-											style={{
-												fontWeight: "bold",
-												fontSize: 12,
-												marginLeft: "5%",
-											}}>
-											Activity Plan Records
-										</Text>
+										<View style={{ flexDirection: "column" }}>
+											<Text
+												style={{
+													fontWeight: "bold",
+													fontSize: 12,
+													marginLeft: "5%",
+												}}>
+												Activity Plan Records
+											</Text>
+											<Text
+												style={{
+													// fontWeight: "bold",
+													fontSize: 10,
+													marginLeft: "5%",
+												}}>
+												Average Satisfaction: {this.calculateSatisfaction()}
+											</Text>
+										</View>
 									</View>
 								</View>
 								<FlatList
@@ -5395,7 +6344,7 @@ export class TrackingPage extends React.Component {
 		//             }}
 		//             value={this.state.planStrategyName}
 		//             onChangeText={(text) => {
-		//               this.setState({ planStrategyName: text });
+		//               this.safeSetState({ planStrategyName: text });
 		//             }}
 		//           />
 		//         </View>
@@ -5582,12 +6531,15 @@ export class TrackingPage extends React.Component {
 					<View
 						style={{
 							flexDirection: "row",
+							width: "100%",
+
 							flexWrap: "wrap",
 							alignItems: "center",
-							marginTop: "5%",
+							marginTop: "20%",
 							paddingHorizontal: "1%",
+							// backgroundColor:"red"
 						}}>
-						{this.state.keywordsBuddle.map((item) => {
+						{this.state.keywordsBuddle.map((item, index) => {
 							let isColored = false;
 							if ("isSelected" in item && item.isSelected) {
 								isColored = true;
@@ -5606,7 +6558,7 @@ export class TrackingPage extends React.Component {
 							}
 
 							return (
-								<TouchableOpacity
+								<TouchableOpacity key = {item.id !== undefined ? item.id : `index-${index}`}
 									style={{
 										height: 25,
 										borderRadius: 20,
@@ -5641,7 +6593,7 @@ export class TrackingPage extends React.Component {
 											item.color = "GREEN";
 										}
 										let newKeyWordsBuddle = this.state.keywordsBuddle;
-										this.setState({ keywordsBuddle: newKeyWordsBuddle });
+										this.safeSetState({ keywordsBuddle: newKeyWordsBuddle });
 										// console.log("item",this.state.keywordsBuddle);
 									}}>
 									<Text
@@ -5681,10 +6633,10 @@ export class TrackingPage extends React.Component {
 							flexDirection: "row",
 							flexWrap: "wrap",
 							alignItems: "center",
-							marginTop: "5%",
+							marginTop: "20%",
 							paddingHorizontal: "5%",
 						}}>
-						{this.state.keywordsBuddle.map((item) => {
+						{this.state.keywordsBuddle.map((item, index) => {
 							let itemColor;
 							if (item.color === "GREEN") {
 								itemColor = GREEN;
@@ -5694,7 +6646,7 @@ export class TrackingPage extends React.Component {
 								itemColor = "black";
 							}
 							return (
-								<TouchableOpacity
+								<TouchableOpacity key = {item.id !== undefined ? item.id : `index-${index}`}
 									style={{
 										height: 25,
 										borderRadius: 20,
@@ -5718,7 +6670,7 @@ export class TrackingPage extends React.Component {
 											item.color = "YELLOW";
 										}
 										let newKeyWordsBuddle = this.state.keywordsBuddle;
-										this.setState({ keywordsBuddle: newKeyWordsBuddle });
+										this.safeSetState({ keywordsBuddle: newKeyWordsBuddle });
 										console.log(
 											"this.state.keywordsBuddle",
 											this.state.keywordsBuddle
@@ -5751,7 +6703,7 @@ export class TrackingPage extends React.Component {
 				}}>
 				<View style={{ marginTop: "10%" }}>
 					<Text style={{ fontFamily: "RobotoBoldItalic", fontSize: 18 }}>
-						How satisfied are you with this planning strategy?
+						How would you rate this planning strategy (see details above)?
 					</Text>
 				</View>
 				<View
@@ -5817,7 +6769,7 @@ export class TrackingPage extends React.Component {
 									{this.state.selectedStrategy.title}
 								</Text>
 							</View>
-							<View
+							{/* <View
 								style={{
 									flexDirection: "column",
 									justifyContent: "center",
@@ -5838,7 +6790,7 @@ export class TrackingPage extends React.Component {
 									{this.state.selectedStrategy.startDate} →{" "}
 									{this.state.selectedStrategy.endDate}
 								</Text>
-							</View>
+							</View> */}
 							{/* <View style={{ position: "absolute", right: 5 }}>
                     <MaterialIcons
                       name="track-changes"
@@ -5928,7 +6880,7 @@ export class TrackingPage extends React.Component {
 									// marginBottom: "5%",
 									paddingHorizontal: "5%",
 								}}>
-								{this.state.keywordsBuddle.map((item) => {
+								{this.state.keywordsBuddle.map((item, index) => {
 									let itemColor;
 									if (item.color === "GREEN") {
 										itemColor = GREEN;
@@ -5938,7 +6890,7 @@ export class TrackingPage extends React.Component {
 										itemColor = "black";
 									}
 									return (
-										<View
+										<View key = {item.id !== undefined ? item.id : `index-${index}`}
 											style={{
 												height: 25,
 												borderRadius: 20,
@@ -5963,7 +6915,7 @@ export class TrackingPage extends React.Component {
 											//     item.color = "YELLOW";
 											//   }
 											//   let newKeyWordsBuddle = this.state.keywordsBuddle;
-											//   this.setState({keywordsBuddle:newKeyWordsBuddle});
+											//   this.safeSetState({keywordsBuddle:newKeyWordsBuddle});
 											// }}
 										>
 											<Text
@@ -5994,7 +6946,7 @@ export class TrackingPage extends React.Component {
 						borderWidth={0}
 						initial={parseInt(this.state.satisfactionScoreEV) - 1}
 						onPress={(value) => {
-							this.setState({ satisfactionScoreEV: value });
+							this.safeSetState({ satisfactionScoreEV: value });
 						}}
 					/>
 				</View>
@@ -6110,7 +7062,7 @@ export class TrackingPage extends React.Component {
 									{this.state.selectedStrategy.title}
 								</Text>
 							</View>
-							<View
+							{/* <View
 								style={{
 									flexDirection: "column",
 									justifyContent: "center",
@@ -6131,7 +7083,7 @@ export class TrackingPage extends React.Component {
 									{this.state.selectedStrategy.startDate} →{" "}
 									{this.state.selectedStrategy.endDate}
 								</Text>
-							</View>
+							</View> */}
 							{/* <View style={{ position: "absolute", right: 5 }}>
                     <MaterialIcons
                       name="track-changes"
@@ -6168,23 +7120,7 @@ export class TrackingPage extends React.Component {
 									{this.calculateCompletion()}%
 								</Text>
 							</View>
-							<View
-								style={{
-									flexDirection: "row",
-									alignItems: "center",
-									marginRight: 10,
-								}}>
-								<Ionicons name="heart-circle" size={15} color="white" />
-								<Text
-									style={{
-										fontWeight: "bold",
-										fontSize: 11,
-										color: "white",
-										marginLeft: 5,
-									}}>
-									{this.calculateSatisfaction()}
-								</Text>
-							</View>
+
 							<View
 								style={{
 									flexDirection: "row",
@@ -6200,6 +7136,23 @@ export class TrackingPage extends React.Component {
 										marginLeft: 5,
 									}}>
 									{this.calculateTotalDuration()} min
+								</Text>
+							</View>
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									marginRight: 10,
+								}}>
+								<Ionicons name="heart-circle" size={15} color="white" />
+								<Text
+									style={{
+										fontWeight: "bold",
+										fontSize: 11,
+										color: "white",
+										marginLeft: 5,
+									}}>
+									{this.calculateSatisfaction()}
 								</Text>
 							</View>
 						</View>
@@ -6221,7 +7174,7 @@ export class TrackingPage extends React.Component {
 									// marginBottom: "5%",
 									paddingHorizontal: "5%",
 								}}>
-								{this.state.keywordsBuddle.map((item) => {
+								{this.state.keywordsBuddle.map((item, index) => {
 									let itemColor;
 									if (item.color === "GREEN") {
 										itemColor = GREEN;
@@ -6231,7 +7184,7 @@ export class TrackingPage extends React.Component {
 										itemColor = "black";
 									}
 									return (
-										<View
+										<View key = {item.id !== undefined ? item.id : `index-${index}`}
 											style={{
 												height: 25,
 												borderRadius: 20,
@@ -6256,7 +7209,7 @@ export class TrackingPage extends React.Component {
 											//     item.color = "YELLOW";
 											//   }
 											//   let newKeyWordsBuddle = this.state.keywordsBuddle;
-											//   this.setState({keywordsBuddle:newKeyWordsBuddle});
+											//   this.safeSetState({keywordsBuddle:newKeyWordsBuddle});
 											// }}
 										>
 											<Text
@@ -6288,11 +7241,11 @@ export class TrackingPage extends React.Component {
 						initial={0}
 						onPress={(value) => {
 							console.log("value", value);
-							this.setState({ evaluationPage_FOUR_value: value });
+							this.safeSetState({ evaluationPage_FOUR_value: value });
 							if (this.state.evaluationPage_FOUR_value === "No") {
-								this.setState({ evaluationNEXTbtnTxt: "NEXT" });
+								this.safeSetState({ evaluationNEXTbtnTxt: "NEXT" });
 							} else {
-								this.setState({ evaluationNEXTbtnTxt: "START TRACKING!" });
+								this.safeSetState({ evaluationNEXTbtnTxt: "START PLANNING!" });
 							}
 						}}
 					/>
@@ -6325,11 +7278,11 @@ export class TrackingPage extends React.Component {
 						borderWidth={0}
 						initial={0}
 						onPress={(value) => {
-							this.setState({ evaluationPage_FIVE_value: value });
+							this.safeSetState({ evaluationPage_FIVE_value: value });
 							if (this.state.evaluationPage_FIVE_value === "No") {
-								this.setState({ evaluationNEXTbtnTxt: "NEXT" });
+								this.safeSetState({ evaluationNEXTbtnTxt: "NEXT" });
 							} else {
-								this.setState({ evaluationNEXTbtnTxt: "START TRACKING!" });
+								this.safeSetState({ evaluationNEXTbtnTxt: "START PLANNING!" });
 							}
 						}}
 					/>
@@ -6358,7 +7311,7 @@ export class TrackingPage extends React.Component {
 						alignItems: "center",
 						justifyContent: "flex-start",
 					}}>
-					{this.userStrategies.map((item) => {
+					{this.userStrategies.map((item, index) => {
 						let startDate = new Date(item.startDate);
 						let endDate = new Date(item.endDate);
 						let isTodayInBetween;
@@ -6389,17 +7342,21 @@ export class TrackingPage extends React.Component {
 						let satisfactionCnt = 0;
 						let accDuration = 0;
 						for (let event of item.plans) {
-							if (event.satisfactionScore) {
-								satisfaction = satisfaction + parseInt(event.satisfactionScore);
+							if (event.satisfactionScore && event.isReported) {
+								satisfaction =
+									satisfaction + parseInt(event.satisfactionScore);
 								satisfactionCnt++;
-								accDuration += event.duration;
+								if (event.isActivityCompleted || event.partialStatus != "NONE") {
+									accDuration += event.duration;
+								}
+								
 							}
 						}
 						let avgSatisfaction = (satisfaction / satisfactionCnt).toFixed(2);
 						// console.log("isTodayInBetween", item.title, isTodayInBetween);
 
 						return (
-							<View
+							<View key = {item.id !== undefined ? item.id : `index-${index}`}
 								style={[
 									// generalStyles.shadowStyle,
 									{
@@ -6431,12 +7388,12 @@ export class TrackingPage extends React.Component {
 										flexDirection: "column",
 									}}
 									onPress={async () =>
-										// this.setState({ isStrategyDetailModalVis: true })
+										// this.safeSetState({ isStrategyDetailModalVis: true })
 										{
 											setTimeout(() => {
 												this._panel.hide();
 											});
-											this.setState({
+											this.safeSetState({
 												hideIcon2: (
 													<Ionicons
 														name="chevron-up-circle"
@@ -6445,7 +7402,7 @@ export class TrackingPage extends React.Component {
 													/>
 												),
 											});
-											this.setState({ isPanelHided: true });
+											this.safeSetState({ isPanelHided: true });
 
 											let thisMonthNum = parseInt(
 												moment(new Date()).format().slice(5, 7)
@@ -6455,36 +7412,36 @@ export class TrackingPage extends React.Component {
 											);
 											console.log("selectedMonthNum", selectedMonthNum);
 											console.log("thisMonthNum", thisMonthNum);
-											this.setState({ selectedStrategy: item });
-											this.setState({ selectedKeywords: item.keywords });
-											this.setState({ selectedStrategyPlans: item.plans });
+											this.safeSetState({ selectedStrategy: item });
+											this.safeSetState({ selectedKeywords: item.keywords });
+											this.safeSetState({ selectedStrategyPlans: item.plans });
 											if (thisMonthNum > selectedMonthNum) {
 												this.pastMonthBtnPressed();
-												this.setState({
+												this.safeSetState({
 													selectedStrategyDate: item.startDate,
 												});
-												this.setState({
+												this.safeSetState({
 													monthCalStrategyStartDate: item.startDate,
 												});
 												if (thisMonthNum != selectedMonthNum + 2) {
 													let eventDate = new Date(item.startDate);
-													await this.setState({ selectedDateRaw: eventDate });
-													await this.setState({
+													await this.safeSetState({ selectedDateRaw: eventDate });
+													await this.safeSetState({
 														currentMonthDate: this.state.selectedDateRaw,
 													});
 													this.scrollToThisWeek();
 												}
 											} else if (thisMonthNum < selectedMonthNum) {
 												this.nextMonthBtnPressed();
-												this.setState({
+												this.safeSetState({
 													selectedStrategyDate: item.startDate,
 												});
-												this.setState({
+												this.safeSetState({
 													monthCalStrategyStartDate: item.startDate,
 												});
 												let eventDate = new Date(item.startDate);
-												await this.setState({ selectedDateRaw: eventDate });
-												await this.setState({
+												await this.safeSetState({ selectedDateRaw: eventDate });
+												await this.safeSetState({
 													currentMonthDate: this.state.selectedDateRaw,
 												});
 												this.scrollToThisWeek();
@@ -6494,16 +7451,16 @@ export class TrackingPage extends React.Component {
 												}
 											}
 
-											this.setState({
+											this.safeSetState({
 												selectedStrategyDate: item.startDate,
 											});
-											this.setState({
+											this.safeSetState({
 												monthCalStrategyStartDate: item.startDate,
 											});
 											if (thisMonthNum != selectedMonthNum + 2) {
 												let eventDate = new Date(item.startDate);
-												await this.setState({ selectedDateRaw: eventDate });
-												await this.setState({
+												await this.safeSetState({ selectedDateRaw: eventDate });
+												await this.safeSetState({
 													currentMonthDate: this.state.selectedDateRaw,
 												});
 												this.scrollToThisWeek();
@@ -6580,7 +7537,7 @@ export class TrackingPage extends React.Component {
 													{item.startDate.slice(5)} → {item.endDate.slice(5)}
 												</Text>
 											</View>
-											<View style={{ position: "absolute", right: 5 }}>
+											{/* <View style={{ position: "absolute", right: 5 }}>
 												{isTodayInBetween ? (
 													<FontAwesome5
 														name="play-circle"
@@ -6594,7 +7551,7 @@ export class TrackingPage extends React.Component {
 														color="white"
 													/>
 												)}
-											</View>
+											</View> */}
 										</View>
 										<View
 											style={{
@@ -6634,7 +7591,17 @@ export class TrackingPage extends React.Component {
 													alignItems: "center",
 													marginRight: 10,
 												}}>
-												<Ionicons name="heart-circle" size={15} color="white" />
+												<View
+													style={{
+														alignItems: "center",
+														justifyContent: "center",
+														borderRadius: 20,
+														backgroundColor: "white",
+														height: 13,
+														width: 13,
+													}}>
+													<AntDesign name="like1" size={8} color="black" />
+												</View>
 												<Text
 													style={{
 														fontWeight: "bold",
@@ -6642,9 +7609,10 @@ export class TrackingPage extends React.Component {
 														color: "white",
 														marginLeft: 5,
 													}}>
-													{avgSatisfaction}
+													{item.rating}
 												</Text>
 											</View>
+
 											<View
 												style={{
 													flexDirection: "row",
@@ -6662,6 +7630,23 @@ export class TrackingPage extends React.Component {
 													{accDuration} min
 												</Text>
 											</View>
+											<View
+												style={{
+													flexDirection: "row",
+													alignItems: "center",
+													marginRight: 10,
+												}}>
+												<Ionicons name="heart-circle" size={15} color="white" />
+												<Text
+													style={{
+														fontWeight: "bold",
+														fontSize: 11,
+														color: "white",
+														marginLeft: 5,
+													}}>
+													{avgSatisfaction}
+												</Text>
+											</View>
 										</View>
 									</View>
 
@@ -6677,9 +7662,9 @@ export class TrackingPage extends React.Component {
 											paddingRight: "5%",
 											alignItems: "center",
 										}}>
-										{item.keywords.map((item) => {
+										{item.keywords.map((item, index) => {
 											return (
-												<View
+												<View key = {item.id !== undefined ? item.id : `index-${index}`}
 													style={{
 														borderRadius: 20,
 														height: 32,
@@ -6756,6 +7741,7 @@ export class TrackingPage extends React.Component {
 							alignItems: "center",
 							borderRadius: 20,
 							backgroundColor: "white",
+							display: this.state.isPanelVis,
 						},
 					]}>
 					<TouchableOpacity
@@ -6770,6 +7756,24 @@ export class TrackingPage extends React.Component {
 						}}>
 						{this.state.hideIcon2}
 					</TouchableOpacity>
+					<TouchableOpacity
+						style={{
+							position: "absolute",
+							right: "5%",
+							top: "3%",
+							zIndex: 1,
+						}}
+						onPress={() => {
+							this.safeSetState({ bottomBtnVis: "flex" });
+							this.safeSetState({ evaluatePanelDisplay: "none" });
+							this.safeSetState({ swipeAblePanelDisplay: "flex" });
+							this.safeSetState({ isPanelVis: "none" });
+							this.safeSetState({ isPanelHided: true });
+							this.safeSetState({ isSelectStrategyDisable: false });
+							this.safeSetState({ isReviewBtnDisabled: false });
+						}}>
+						<MaterialIcons name="cancel" size={24} color="black" />
+					</TouchableOpacity>
 					{/* <TouchableOpacity
             style={{
               position: "absolute",
@@ -6781,32 +7785,32 @@ export class TrackingPage extends React.Component {
               this.evaluatePanelPopup();
 
               this.mainContentSwiperRef.current.goToPage(1, true);
-              this.setState({ selectedStrategy: this.currentStrategy });
-              this.setState({
+              this.safeSetState({ selectedStrategy: this.currentStrategy });
+              this.safeSetState({
                 selectedKeywords: this.currentStrategy.keywords,
               });
-              this.setState({
+              this.safeSetState({
                 selectedStrategyPlans: this.currentStrategy.plans,
               });
-              this.setState({ panelHeight: 250 });
-              this.setState({
+              this.safeSetState({ panelHeight: 250 });
+              this.safeSetState({
                 title: "Review",
               });
-              this.setState({ selectedStrategyDate: "" });
+              this.safeSetState({ selectedStrategyDate: "" });
               // this._panel.hide();
               if (this.state.currentMonth != "THIS_MONTH") {
                 this.resetCalendarToCurrentMonth();
               }
 
-              this.setState({
+              this.safeSetState({
                 selectedStrategyDate: this.currentStrategy.startDate,
               });
-              this.setState({
+              this.safeSetState({
                 monthCalStrategyStartDate: this.currentStrategy.startDate,
               });
               let eventDate = new Date(this.currentStrategy.startDate);
-              await this.setState({ selectedDateRaw: eventDate });
-              await this.setState({
+              await this.safeSetState({ selectedDateRaw: eventDate });
+              await this.safeSetState({
                 currentMonthDate: this.state.selectedDateRaw,
               });
               this.scrollToThisWeek();
@@ -6841,7 +7845,7 @@ export class TrackingPage extends React.Component {
 							width: "100%",
 							display: this.state.swipeAblePanelDisplay,
 						}}>
-						<Onboarding
+						{/* <Onboarding
 							// bottomBarHighlight={false}
 							// ref={this.mainContentSwiperRef}
 							containerStyles={{ justifyContent: "flex-start" }}
@@ -6853,17 +7857,17 @@ export class TrackingPage extends React.Component {
 							bottomBarColor="white"
 							showDone={false}
 							pageIndexCallback={async (index) => {
-								this.setState({ mainContentSwiperDisplay: "flex" });
-								this.setState({ conformationPageDisplay: "none" });
+								this.safeSetState({ mainContentSwiperDisplay: "flex" });
+								this.safeSetState({ conformationPageDisplay: "none" });
 								this.mainContentSwiperRef.current.goToPage(index, true);
 
 								//
-								this.setState({ displayCalView: "flex" });
-								this.setState({ displayTitle: "flex" });
+								this.safeSetState({ displayCalView: "flex" });
+								this.safeSetState({ displayTitle: "flex" });
 								if (index === 1) {
-									this.setState({ panelHeight: 450 });
+									this.safeSetState({ panelHeight: 450 });
 									this._panel.hide();
-									this.setState({
+									this.safeSetState({
 										hideIcon2: (
 											<Ionicons
 												name="chevron-up-circle"
@@ -6872,13 +7876,13 @@ export class TrackingPage extends React.Component {
 											/>
 										),
 									});
-									this.setState({ isPanelHided: true });
-									this.setState({
+									this.safeSetState({ isPanelHided: true });
+									this.safeSetState({
 										title: "Strategies",
 									});
 								} else if (index === 0) {
 									this._panel.show();
-									this.setState({
+									this.safeSetState({
 										hideIcon2: (
 											<Ionicons
 												name="chevron-down-circle"
@@ -6887,35 +7891,35 @@ export class TrackingPage extends React.Component {
 											/>
 										),
 									});
-									this.setState({ isPanelHided: false });
+									this.safeSetState({ isPanelHided: false });
 									this.onHideDetailPressed2();
 									// this.onHideDetailPressed2();
-									this.setState({ selectedStrategy: this.currentStrategy });
-									this.setState({
+									this.safeSetState({ selectedStrategy: this.currentStrategy });
+									this.safeSetState({
 										selectedKeywords: this.currentStrategy.keywords,
 									});
-									this.setState({
+									this.safeSetState({
 										selectedStrategyPlans: this.currentStrategy.plans,
 									});
-									this.setState({ panelHeight: 250 });
-									this.setState({
+									this.safeSetState({ panelHeight: 250 });
+									this.safeSetState({
 										title: "Tracking",
 									});
-									this.setState({ selectedStrategyDate: "" });
+									this.safeSetState({ selectedStrategyDate: "" });
 									// this._panel.hide();
 									if (this.state.currentMonth != "THIS_MONTH") {
 										this.resetCalendarToCurrentMonth();
 									}
 
-									this.setState({
+									this.safeSetState({
 										selectedStrategyDate: this.currentStrategy.startDate,
 									});
-									this.setState({
+									this.safeSetState({
 										monthCalStrategyStartDate: this.currentStrategy.startDate,
 									});
 									let eventDate = new Date(this.currentStrategy.startDate);
-									await this.setState({ selectedDateRaw: eventDate });
-									await this.setState({
+									await this.safeSetState({ selectedDateRaw: eventDate });
+									await this.safeSetState({
 										currentMonthDate: this.state.selectedDateRaw,
 									});
 									this.scrollToThisWeek();
@@ -6935,7 +7939,7 @@ export class TrackingPage extends React.Component {
 									image: secondSlidePanelPageUpdated,
 								},
 							]}
-						/>
+						/> */}
 					</View>
 					{/* Swipable Evaluation Content */}
 					<View
@@ -6959,11 +7963,11 @@ export class TrackingPage extends React.Component {
 							bottomBarColor="white"
 							showDone={true}
 							pageIndexCallback={async (index) => {
-								this.setState({ evaluationPage_Index: index });
+								this.safeSetState({ evaluationPage_Index: index });
 								if (index === 5) {
 									this.mainContentSwiperRef.current.goToPage(1, true);
-									await this.setState({ isPanelHided: false });
-									await this.setState({
+									await this.safeSetState({ isPanelHided: false });
+									await this.safeSetState({
 										hideIcon2: (
 											<Ionicons
 												name="chevron-down-circle"
@@ -6972,35 +7976,19 @@ export class TrackingPage extends React.Component {
 											/>
 										),
 									});
-									this.setState({ panelHeight: 450 });
+									this.safeSetState({ panelHeight: 450 });
 									setTimeout(() => {
 										this._panel.show();
 									});
 								} else {
-									this.setState({ panelHeight: 300 });
+									this.safeSetState({ panelHeight: 300 });
 								}
 							}}
 							NextButtonComponent={() => (
 								<TouchableOpacity
 									style={{ width: "100%", padding: "5%" }}
 									onPress={() => {
-										if (this.state.evaluationPage_Index === 3) {
-											if (this.state.evaluationPage_FOUR_value === "Yes") {
-												this.evaluationSwipeRef.current.goNext();
-											} else {
-												console.log(
-													"Direct to new tracking page with same plans"
-												);
-											}
-										} else if (this.state.evaluationPage_Index === 4) {
-											if (this.state.evaluationPage_FIVE_value === "Yes") {
-												this.evaluationSwipeRef.current.goNext();
-											} else {
-												console.log("Direct to plan set up");
-											}
-										} else {
-											this.evaluationSwipeRef.current.goNext();
-										}
+										this.onNextButtonPressedReviewScreen();
 									}}>
 									<Text
 										style={{
@@ -7015,14 +8003,36 @@ export class TrackingPage extends React.Component {
 							DoneButtonComponent={() => (
 								<TouchableOpacity
 									style={{ width: "100%", padding: "5%" }}
-									onPress={() => {}}>
+									onPress={() => {
+										console.log("selected previous strategy to go");
+										this.submitStrategyEvaluation();
+										this.props.navigation.navigate("PlanOnCalendar", {
+											userEmail: this.userEmail,
+											userInfo: this.userInfo,
+											userStrategies: this.userStrategies,
+											eventsLastMonth: this.eventsLastMonth,
+											eventsThisMonth: this.eventsThisMonth,
+											eventsNextMonth: this.eventsNextMonth,
+											fullEventList: this.fullEventList,
+											lastMonthWeather: this.lastMonthWeather,
+											thisMonthWeather: this.thisMonthWeather,
+											nextMonthWeather: this.nextMonthWeather,
+											userActivityList:
+												this.props.route.params.userActivityList,
+											currentStrategy: this.state.selectedStrategy,
+											keywords: this.state.selectedStrategy.keywords,
+											plans: this.state.selectedStrategy.plans,
+											title: this.state.selectedStrategy.title,
+											// isFromPlanSetUp: false
+										});
+									}}>
 									<Text
 										style={{
 											fontFamily: "RobotoBoldBlack",
 											textAlign: "right",
 											marginRight: 10,
 										}}>
-										START TRACKING!
+										START PLANNING!
 									</Text>
 								</TouchableOpacity>
 							)}
@@ -7036,7 +8046,7 @@ export class TrackingPage extends React.Component {
 							//         key.color = "UNDEFINED"
 							//       }
 							//     }
-							//     this.setState({keywordsBuddle: updatedEvaluationList});
+							//     this.safeSetState({keywordsBuddle: updatedEvaluationList});
 							//     console.log("this.state.keywordsBuddle",this.state.keywordsBuddle);
 							//   }
 							// }}
@@ -7111,7 +8121,7 @@ export class TrackingPage extends React.Component {
 					borderWidth={0}
 					initial={parseInt(this.state.reportPageONEvalue) - 1}
 					onPress={async (value) =>
-						await this.setState({ reportPageONEvalue: value })
+						await this.safeSetState({ reportPageONEvalue: value })
 					}
 				/>
 				<View
@@ -7199,7 +8209,7 @@ export class TrackingPage extends React.Component {
 					borderWidth={0}
 					initial={parseInt(this.state.satisfactionScore) - 1}
 					onPress={(value) => {
-						this.setState({ satisfactionScore: value });
+						this.safeSetState({ satisfactionScore: value });
 					}}
 				/>
 				<View
@@ -7283,7 +8293,7 @@ export class TrackingPage extends React.Component {
 						placeholder="e.g., Time conflicts"
 						value={this.state.reportScreen_THREETxt}
 						onChangeText={(text) => {
-							this.setState({ reportScreen_THREETxt: text });
+							this.safeSetState({ reportScreen_THREETxt: text });
 						}}></TextInput>
 				</View>
 			</View>
@@ -7313,7 +8323,7 @@ export class TrackingPage extends React.Component {
 					borderWidth={0}
 					initial={0}
 					onPress={async (value) =>
-						this.setState({ reportPage_FOUR_value: value })
+						this.safeSetState({ reportPage_FOUR_value: value })
 					}
 				/>
 			</View>
@@ -7369,19 +8379,21 @@ export class TrackingPage extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
+								{(() => {
+									console.log("General Styles: ", generalStyles.shadowStyle);
+									return null; // Don't render anything
+								})()}
 							<ModalSelector
 								style={{ borderWidth: 0, borderRadius: 20 }}
 								// touchableStyle={{ color: "white" }}
-								optionContainerStyle={[
-									generalStyles.shadowStyle,
-									{
-										borderWidth: 0,
-										backgroundColor: "white",
-										borderColor: "grey",
-										// borderWidth: 2,
-										borderRadius: 15,
-									},
-								]}
+								optionContainerStyle={{
+									...generalStyles.shadowStyle,
+									borderWidth: 0,
+									backgroundColor: "white",
+									borderColor: "grey",
+									// borderWidth: 2,
+									borderRadius: 15,
+								}}
 								selectStyle={{ borderWidth: 0 }}
 								selectTextStyle={{
 									textAlign: "center",
@@ -7422,14 +8434,21 @@ export class TrackingPage extends React.Component {
 								data={this.state.activityData}
 								initValue={this.onReportActivity.title}
 								onChange={async (item) => {
-									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
-									this.setState({ reportTitle: item.label });
+									console.log("activityData:", this.state.activityData);
+									console.log("initValue:", this.onReportActivity.title);
+									console.log("item:", item);
+									this.safeSetState({ isActivityTypeSelected: true });
+									this.safeSetState({ selectedActivity: item.label });
+									this.safeSetState({ reportTitle: item.label });
 									// await this.activityFilter(item);
 								}}
 							/>
 						</View>
 					</View>
+					{(() => {
+        				console.log("Logged Past Modal 2");
+        				return null; // Don't render anything
+    				})()}
 					<View
 						style={{
 							justifyContent: "space-between",
@@ -7466,10 +8485,11 @@ export class TrackingPage extends React.Component {
 								ref={(input) => {
 									this.textInput = input;
 								}}
+								maxLength={12}
 								placeholder="new activity"
 								value={this.state.userDefinedActivityText}
 								onChangeText={(text) =>
-									this.setState({ userDefinedActivityText: text })
+									this.safeSetState({ userDefinedActivityText: text })
 								}></TextInput>
 							<View
 								style={{
@@ -7641,7 +8661,7 @@ export class TrackingPage extends React.Component {
 									borderWidth: 0,
 									backgroundColor: "white",
 									borderColor: "grey",
-									borderWidth: 2,
+									// borderWidth: 2,
 									borderRadius: 15,
 								}}
 								selectStyle={{ borderWidth: 0 }}
@@ -7684,13 +8704,19 @@ export class TrackingPage extends React.Component {
 								data={this.state.activityData}
 								initValue={"Select Here"}
 								onChange={async (item) => {
-									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
+									console.log("activityData:", this.state.activityData);
+									console.log("item:", item);
+									this.safeSetState({ isActivityTypeSelected: true });
+									this.safeSetState({ selectedActivity: item.label });
 									// await this.activityFilter(item);
 								}}
 							/>
 						</View>
 					</View>
+					{(() => {
+        				console.log("Logged Past Modal 3");
+        				return null; // Don't render anything
+    				})()}
 					<View
 						style={{
 							justifyContent: "space-between",
@@ -7727,10 +8753,11 @@ export class TrackingPage extends React.Component {
 								ref={(input) => {
 									this.textInput = input;
 								}}
+								maxLength={12}
 								placeholder="new activity"
 								value={this.state.userDefinedActivityText}
 								onChangeText={(text) =>
-									this.setState({ userDefinedActivityText: text })
+									this.safeSetState({ userDefinedActivityText: text })
 								}></TextInput>
 							<View
 								style={{
@@ -7783,19 +8810,18 @@ export class TrackingPage extends React.Component {
 					initial={0}
 					onPress={async (value) => {
 						console.log("value", value);
-						this.setState({ reportPage_SEVEN_value: value });
+						this.safeSetState({ reportPage_SEVEN_value: value });
 						if (value === "No") {
-							this.setState({ reportNEXTbtn: "SUBMIT" });
+							this.safeSetState({ reportNEXTbtn: "SUBMIT" });
 						} else {
-							this.setState({ reportNEXTbtn: "NEXT" });
+							this.safeSetState({ reportNEXTbtn: "NEXT" });
 						}
 					}}
 				/>
 			</View>
 		);
 		let reportScreen_EIGHT = (
-			<View
-				style={{ height: "100%", width: "100%", padding: 15, marginTop: 5 }}>
+			<View style={{ height: 500, width: "100%", padding: 15, marginTop: 5 }}>
 				<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 16 }}>
 					Tell us what are other activities you did?{" "}
 				</Text>
@@ -7812,413 +8838,492 @@ export class TrackingPage extends React.Component {
 						marginTop: 10,
 						marginBottom: 10,
 					}}></View>
-				<Text
-					style={{
-						fontFamily: "RobotoBoldItalic",
-						fontSize: 16,
-						marginBottom: 5,
-					}}>
-					Unplanned Activities
-				</Text>
-				{/* Activity List */}
-				<View
-					style={[
-						generalStyles.shadowStyle,
-						{ width: "100%", height: 150, paddingHorizontal: 0 },
-					]}>
-					<FlatList
-						data={this.state.selfReportedActivityList}
-						renderItem={({ item }) => {
-							if (!item.isDeleted) {
-								let timing =
-									moment(item.start).format("ddd").toUpperCase() +
-									" " +
-									item.start.slice(11, 16) +
-									" - " +
-									item.end.slice(11, 16) +
-									" | " +
-									item.duration +
-									" MIN";
-
-								return (
-									<View
-										style={[
-											{
-												width: "100%",
-												height: 39,
-												borderRadius: 20,
-												borderColor: "#F0F0F0",
-												borderWidth: 1,
-												paddingHorizontal: 0,
-												flexDirection: "row",
-												alignItems: "center",
-												justifyContent: "space-between",
-												marginTop: 5,
-											},
-										]}>
-										<Text
-											ellipsizeMode="tail"
-											numberOfLines={1}
-											style={{
-												fontFamily: "RobotoBoldBold",
-												fontSize: 14,
-												paddingLeft: 8,
-												width: 100,
-											}}>
-											{item.title}
-										</Text>
-										<Text style={{ fontFamily: "RobotoRegular", fontSize: 14 }}>
-											{timing}
-										</Text>
-										<Text style={{ fontFamily: "RobotoRegular", fontSize: 14 }}>
-											{/* {item.duration} */}
-										</Text>
-										<TouchableOpacity
-											onPress={() => this.deleteActivity_reportScreen(item)}>
-											<Ionicons
-												name="md-close-circle"
-												size={24}
-												color="black"
-											/>
-										</TouchableOpacity>
-									</View>
-								);
-							}
-							// console.log("items in plansBuddle", item);
-						}}
-					/>
-				</View>
-				{/* First Row of Activity Selection */}
-				<View
+				<TouchableOpacity
 					style={{
 						flexDirection: "row",
-						justifyContent: "space-between",
+						justifyContent: "flex-start",
 						alignItems: "center",
-						paddingHorizontal: "5%",
-						paddingVertical: "2%",
-						height: 90,
-						width: "100%",
-						borderColor: "#DADADA",
-						borderWidth: 2,
-						borderRadius: 20,
-						marginTop: "5%",
+						display: this.state.addUnplannedActivityBtnVis,
+					}}
+					onPress={() => {
+						this.safeSetState({ reportModalHeight: 670 });
+						this.safeSetState({ unplannedActivityPanelVis: "flex" });
 					}}>
 					<View
 						style={{
+							alignItems: "center",
+							justifyContent: "center",
+							marginRight: 10,
+						}}>
+						<Ionicons name="chevron-down-circle" size={25} color="black" />
+					</View>
+					<Text
+						style={{
+							fontFamily: "RobotoBoldItalic",
+							fontSize: 16,
+						}}>
+						Click here to Add Unplanned Activities
+					</Text>
+				</TouchableOpacity>
+				<View style={{ display: this.state.unplannedActivityPanelVis }}>
+					{/* Activity List */}
+					<View
+						style={[
+							generalStyles.shadowStyle,
+							{ width: "100%", height: 150, paddingHorizontal: 0 },
+						]}>
+						<FlatList
+							data={this.state.selfReportedActivityList}
+							renderItem={({ item }) => {
+								if (!item.isDeleted) {
+									let timing =
+										moment(item.start).format("ddd").toUpperCase() +
+										" " +
+										item.start.slice(11, 16) +
+										" - " +
+										item.end.slice(11, 16) +
+										" | " +
+										item.duration +
+										" MIN";
+
+									return (
+										<View key = {item.id || item.start}
+											style={[
+												{
+													width: "100%",
+													height: 39,
+													borderRadius: 20,
+													borderColor: "#F0F0F0",
+													borderWidth: 1,
+													paddingHorizontal: 0,
+													flexDirection: "row",
+													alignItems: "center",
+													justifyContent: "space-between",
+													marginTop: 5,
+												},
+											]}>
+											<Text
+												ellipsizeMode="tail"
+												numberOfLines={1}
+												style={{
+													fontFamily: "RobotoBoldBold",
+													fontSize: 14,
+													paddingLeft: 8,
+													width: 100,
+												}}>
+												{item.title}
+											</Text>
+											<Text
+												style={{ fontFamily: "RobotoRegular", fontSize: 14 }}>
+												{timing}
+											</Text>
+											<Text
+												style={{ fontFamily: "RobotoRegular", fontSize: 14 }}>
+												{/* {item.duration} */}
+											</Text>
+											<TouchableOpacity
+												onPress={() => this.deleteActivity_reportScreen(item)}>
+												<Ionicons
+													name="md-close-circle"
+													size={24}
+													color="black"
+												/>
+											</TouchableOpacity>
+										</View>
+									);
+								}
+								// console.log("items in plansBuddle", item);
+							}}
+						/>
+					</View>
+					{/* First Row of Activity Selection */}
+					<View
+						style={{
+							flexDirection: "row",
 							justifyContent: "space-between",
 							alignItems: "center",
-							height: "100%",
-							width: "50%",
+							paddingHorizontal: "5%",
 							paddingVertical: "2%",
-							paddingHorizontal: "2%",
+							height: 90,
+							width: "100%",
+							borderColor: "#DADADA",
+							borderWidth: 2,
+							borderRadius: 20,
+							marginTop: "5%",
 						}}>
-						<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
-							Activity
-						</Text>
 						<View
 							style={{
-								backgroundColor: "black",
-								borderRadius: 40,
-								height: "50%",
-								width: "100%",
-								justifyContent: "center",
+								justifyContent: "space-between",
 								alignItems: "center",
+								height: "100%",
+								width: "50%",
+								paddingVertical: "2%",
+								paddingHorizontal: "2%",
 							}}>
-							<ModalSelector
-								style={{ borderWidth: 0, borderRadius: 20 }}
-								// touchableStyle={{ color: "white" }}
-								optionContainerStyle={[
-									generalStyles.shadowStyle,
-									{
+							<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
+								Activity
+							</Text>
+							<View
+								style={{
+									backgroundColor: "black",
+									borderRadius: 40,
+									height: "50%",
+									width: "100%",
+									justifyContent: "center",
+									alignItems: "center",
+								}}>
+								{(() => {
+									console.log("General Styles: ", generalStyles.shadowStyle);
+									return null; // Don't render anything
+								})()}
+								<ModalSelector
+									style={{ borderWidth: 0, borderRadius: 20 }}
+									// touchableStyle={{ color: "white" }}
+									optionContainerStyle={{
+										...generalStyles.shadowStyle,
 										borderWidth: 0,
 										backgroundColor: "white",
 										borderColor: "grey",
 										// borderWidth: 2,
 										borderRadius: 15,
-									},
-								]}
-								selectStyle={{ borderWidth: 0 }}
-								selectTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								initValueTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
-									backgroundColor: "black",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								backdropPressToClose={true}
-								overlayStyle={{
-									flex: 1,
-									padding: "5%",
-									justifyContent: "center",
-									backgroundColor: "rgba(0,0,0,0)",
-									borderRadius: 20,
-								}}
-								optionTextStyle={{
-									fontWeight: "bold",
-									fontFamily: "RobotoBoldBlack",
-								}}
-								sectionTextStyle={{
-									fontWeight: "bold",
-									fontFamily: "RobotoBoldItalic",
-								}}
-								cancelStyle={{
-									backgroundColor: "black",
-									borderRadius: 15,
-								}}
-								cancelTextStyle={{ fontWeight: "bold", color: "white" }}
-								data={this.state.activityData}
-								initValue={"Select Here"}
-								onChange={async (item) => {
-									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
-									// await this.activityFilter(item);
-								}}
-							/>
+									}}
+									selectStyle={{ borderWidth: 0 }}
+									selectTextStyle={{
+										textAlign: "center",
+										color: "white",
+										fontWeight: "bold",
+										borderRadius: 20,
+										fontSize: 12,
+									}}
+									initValueTextStyle={{
+										textAlign: "center",
+										color: "white",
+										fontWeight: "bold",
+										backgroundColor: "black",
+										borderRadius: 20,
+										fontSize: 12,
+									}}
+									backdropPressToClose={true}
+									overlayStyle={{
+										flex: 1,
+										padding: "5%",
+										justifyContent: "center",
+										backgroundColor: "rgba(0,0,0,0)",
+										borderRadius: 20,
+									}}
+									optionTextStyle={{
+										fontWeight: "bold",
+										fontFamily: "RobotoBoldBlack",
+									}}
+									sectionTextStyle={{
+										fontWeight: "bold",
+										fontFamily: "RobotoBoldItalic",
+									}}
+									cancelStyle={{
+										backgroundColor: "black",
+										borderRadius: 15,
+									}}
+									cancelTextStyle={{ fontWeight: "bold", color: "white" }}
+									data={this.state.activityData}
+									initValue={"Select Here"}
+									onChange={async (item) => {
+										console.log("activityData:", this.state.activityData);
+										console.log("item:", item);
+										this.safeSetState({ isActivityTypeSelected: true });
+										this.safeSetState({ selectedActivity: item.label });
+										// await this.activityFilter(item);
+									}}
+								/>
+							</View>
 						</View>
-					</View>
-					<View
-						style={{
-							justifyContent: "space-between",
-							alignItems: "center",
-							height: "100%",
-							width: "50%",
-							paddingVertical: "2%",
-							paddingHorizontal: "2%",
-						}}>
-						<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
-							Self-Defined
-						</Text>
-						{/* Add New Activity Text Field */}
+						{(() => {
+        					console.log("Logged Past Modal 4");
+        					return null; // Don't render anything
+    					})()}
 						<View
 							style={{
-								backgroundColor: "white",
-								height: "50%",
-								borderRadius: 20,
-								borderWidth: 2,
-								borderColor: "black",
-								marginRight: 0,
-								flexDirection: "row",
-								alignItems: "center",
 								justifyContent: "space-between",
+								alignItems: "center",
+								height: "100%",
+								width: "50%",
+								paddingVertical: "2%",
+								paddingHorizontal: "2%",
 							}}>
-							<TextInput
-								style={{
-									fontSize: 16,
-									marginLeft: 5,
-									width: "100%",
-									textAlign: "center",
-									fontFamily: "RobotoBoldItalic",
-								}}
-								ref={(input) => {
-									this.textInput = input;
-								}}
-								placeholder="new activity"
-								value={this.state.userDefinedActivityText}
-								onChangeText={(text) =>
-									this.setState({ userDefinedActivityText: text })
-								}></TextInput>
+							<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
+								Self-Defined
+							</Text>
+							{/* Add New Activity Text Field */}
 							<View
 								style={{
-									margin: 1,
-									justifyContent: "center",
-									position: "absolute",
-									marginRight: 1,
+									backgroundColor: "white",
+									height: "50%",
+									borderRadius: 20,
+									borderWidth: 2,
+									borderColor: "black",
+									marginRight: 0,
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "space-between",
 								}}>
-								<TouchableOpacity
-									style={{ alignItems: "center", justifyContent: "center" }}
-									onPress={this.addNewActivityBtnPressed}>
-									<Ionicons
-										name="ios-add-circle"
-										size={25}
-										color={"black"}
-										// style={{flex:0.1}}
-									/>
-								</TouchableOpacity>
+								<TextInput
+									style={{
+										fontSize: 16,
+										marginLeft: 5,
+										width: "100%",
+										textAlign: "center",
+										fontFamily: "RobotoBoldItalic",
+									}}
+									ref={(input) => {
+										this.textInput = input;
+									}}
+									maxLength={12}
+									placeholder="new activity"
+									value={this.state.userDefinedActivityText}
+									onChangeText={(text) =>
+										this.safeSetState({ userDefinedActivityText: text })
+									}></TextInput>
+								<View
+									style={{
+										margin: 1,
+										justifyContent: "center",
+										position: "absolute",
+										marginRight: 1,
+									}}>
+									<TouchableOpacity
+										style={{ alignItems: "center", justifyContent: "center" }}
+										onPress={this.addNewActivityBtnPressed}>
+										<Ionicons
+											name="ios-add-circle"
+											size={25}
+											color={"black"}
+											// style={{flex:0.1}}
+										/>
+									</TouchableOpacity>
+								</View>
 							</View>
 						</View>
 					</View>
-				</View>
-				{/* Second Row of Date & Time Selection */}
-				<View
-					style={{
-						flexDirection: "row",
-						justifyContent: "space-between",
-						alignItems: "center",
-						// paddingHorizontal: "5%",
+					{(() => {
+        				console.log("Line 9090");
+        				return null; // Don't render anything
+    				})()}
+					{/* Second Row of Date & Time Selection */}
+					<View
+						style={{
+							flexDirection: "row",
+							justifyContent: "space-between",
+							alignItems: "center",
+							// paddingHorizontal: "5%",
 
-						height: 90,
-						width: "100%",
-						borderColor: "#DADADA",
-						backgroundColor: "#F0F0F0",
-						borderWidth: 2,
-						borderRadius: 20,
-						marginTop: "2%",
-					}}>
-					<View
-						style={{
-							flex: 1,
-							height: "100%",
-							alignItems: "center",
-							justifyContent: "space-between",
-							borderColor: "#F0F0F0",
-							backgroundColor: "#DADADA",
-							paddingVertical: "4%",
-							borderBottomLeftRadius: 15,
-							borderTopLeftRadius: 15,
+							height: 90,
+							width: "100%",
+							borderColor: "#DADADA",
+							backgroundColor: "#F0F0F0",
+							borderWidth: 2,
+							borderRadius: 20,
+							marginTop: "2%",
 						}}>
-						<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
-							Date
-						</Text>
 						<View
 							style={{
-								justifyContent: "center",
+								flex: 1,
+								height: "100%",
 								alignItems: "center",
-								height: 40,
-								width: "100%",
+								justifyContent: "space-between",
+								borderColor: "#F0F0F0",
 								backgroundColor: "#DADADA",
-								borderRadius: 5,
+								paddingVertical: "4%",
+								borderBottomLeftRadius: 15,
+								borderTopLeftRadius: 15,
 							}}>
-							<DateTimePicker
-								value={this.state.dateTimePickerDate}
-								mode="date"
-								is24Hour={true}
-								display="default"
-								onChange={async (e, date) => {
-									this.pickTheDate(date);
-									this.setState({ dateTimePickerDate: date });
-								}}
+							<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
+								Date
+							</Text>
+							<View
 								style={{
-									width: 80,
+									justifyContent: "center",
+									alignItems: "center",
 									height: 40,
-									flex: 1,
-								}}
-							/>
+									width: "100%",
+									backgroundColor: "#DADADA",
+									borderRadius: 5,
+								}}>
+								<DateTimePicker
+									value={this.state.dateTimePickerDate}
+									mode="date"
+									is24Hour={true}
+									display="default"
+									onChange={async (e, date) => {
+										this.pickTheDate(date);
+										this.safeSetState({ dateTimePickerDate: date });
+									}}
+									style={{
+										width: 80,
+										height: 40,
+										flex: 1,
+									}}
+								/>
+							</View>
 						</View>
-					</View>
-					<View
-						style={{
-							flex: 1,
-							height: "100%",
-							alignItems: "center",
-							justifyContent: "space-between",
-							paddingVertical: "4%",
-						}}>
-						<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
-							From
-						</Text>
 						<View
 							style={{
-								justifyContent: "center",
+								flex: 1,
+								height: "100%",
 								alignItems: "center",
-								height: 40,
-								width: "100%",
-								backgroundColor: "#F0F0F0",
-								borderTopLeftRadius: 5,
-								borderBottomLeftRadius: 5,
+								justifyContent: "space-between",
+								paddingVertical: "4%",
 							}}>
-							<DateTimePicker
-								value={this.state.startTime}
-								mode="spinner"
-								minuteInterval={10}
-								is24Hour={true}
-								display="default"
-								onChange={async (e, date) => this.pickStartTime(date)}
+							<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
+								From
+							</Text>
+							<View
 								style={{
-									width: 90,
+									justifyContent: "center",
+									alignItems: "center",
 									height: 40,
-									flex: 1,
-								}}
-							/>
+									width: "100%",
+									backgroundColor: "#F0F0F0",
+									borderTopLeftRadius: 5,
+									borderBottomLeftRadius: 5,
+								}}>
+								<DateTimePicker
+									value={this.state.startTime}
+									mode="spinner"
+									minuteInterval={10}
+									is24Hour={true}
+									display="default"
+									onChange={async (e, date) => this.pickStartTime(date)}
+									style={{
+										width: 90,
+										height: 40,
+										flex: 1,
+									}}
+								/>
+							</View>
 						</View>
-					</View>
-					<View
-						style={{
-							flex: 1,
-							height: "100%",
-							alignItems: "center",
-							justifyContent: "space-between",
-							paddingVertical: "4%",
-						}}>
-						<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
-							To
-						</Text>
 						<View
 							style={{
-								justifyContent: "center",
+								flex: 1,
+								height: "100%",
 								alignItems: "center",
-								height: 40,
-								width: "100%",
-								backgroundColor: "#F0F0F0",
-								borderTopRightRadius: 5,
-								borderBottomRightRadius: 5,
+								justifyContent: "space-between",
+								paddingVertical: "4%",
 							}}>
-							<DateTimePicker
-								value={this.state.endTime}
-								mode="spinner"
-								minuteInterval={10}
-								is24Hour={true}
-								display="default"
-								onChange={async (e, date) => this.pickEndTime(date)}
+							<Text style={{ fontFamily: "RobotoBoldBold", fontSize: 14 }}>
+								To
+							</Text>
+							<View
 								style={{
-									width: 90,
+									justifyContent: "center",
+									alignItems: "center",
 									height: 40,
-									flex: 1,
-								}}
-							/>
+									width: "100%",
+									backgroundColor: "#F0F0F0",
+									borderTopRightRadius: 5,
+									borderBottomRightRadius: 5,
+								}}>
+								<DateTimePicker
+									value={this.state.endTime}
+									mode="spinner"
+									minuteInterval={10}
+									is24Hour={true}
+									display="default"
+									onChange={async (e, date) => this.pickEndTime(date)}
+									style={{
+										width: 90,
+										height: 40,
+										flex: 1,
+									}}
+								/>
+							</View>
 						</View>
 					</View>
-				</View>
-				<View style={{ alignItems: "center", justifyContent: "center" }}>
-					<TouchableOpacity
-						onPress={() => this.onPlanBtnPressed_reportScreen()}>
-						<AddActivityBtn height={32} width={202} marginTop={"2%"} />
-					</TouchableOpacity>
+					<View style={{ alignItems: "center", justifyContent: "center" }}>
+						<TouchableOpacity
+							onPress={() => this.onPlanBtnPressed_reportScreen()}>
+							<AddActivityBtn height={32} width={202} marginTop={"2%"} />
+						</TouchableOpacity>
+					</View>
 				</View>
 			</View>
 		);
+		{(() => {
+			console.log("Line 9233");
+			return null; // Don't render anything
+		})()}
 		let tip_ONE = (
-			<View style={{ height: "100%", width: "100%",  }}>
-				<View style={{height: "100%", width: "100%",justifyContent:"flex-start", alignItems:"center", flexDirection:"column"}}>
+			<View style={{ height: "100%", width: "100%" }}>
+				<View
+					style={{
+						height: "100%",
+						width: "100%",
+						justifyContent: "flex-start",
+						alignItems: "center",
+						flexDirection: "column",
+					}}>
 					<TipCalendar1 height={"100%"} width={"100%"} />
 				</View>
 			</View>
 		);
 		let tip_TWO = (
-			<View style={{ height: "100%", width: "100%",  }}>
-				<View style={{height: "100%", width: "100%",justifyContent:"flex-start", alignItems:"center", flexDirection:"column"}}>
+			<View style={{ height: "100%", width: "100%" }}>
+				<View
+					style={{
+						height: "100%",
+						width: "100%",
+						justifyContent: "flex-start",
+						alignItems: "center",
+						flexDirection: "column",
+					}}>
 					<TipCalendar2 height={"100%"} width={"100%"} />
 				</View>
 			</View>
 		);
 		let tip_THREE = (
-			<View style={{ height: "100%", width: "100%",  }}>
-				<View style={{height: "100%", width: "100%",justifyContent:"flex-start", alignItems:"center", flexDirection:"column"}}>
+			<View style={{ height: "100%", width: "100%" }}>
+				<View
+					style={{
+						height: "100%",
+						width: "100%",
+						justifyContent: "flex-start",
+						alignItems: "center",
+						flexDirection: "column",
+					}}>
 					<TipCalendar3 height={"100%"} width={"100%"} />
 				</View>
 			</View>
 		);
 		let tip_FOUR = (
-			<View style={{ height: "100%", width: "100%",  }}>
-				<View style={{height: "100%", width: "100%",justifyContent:"flex-start", alignItems:"center", flexDirection:"column"}}>
+			<View style={{ height: "100%", width: "100%" }}>
+				<View
+					style={{
+						height: "100%",
+						width: "100%",
+						justifyContent: "flex-start",
+						alignItems: "center",
+						flexDirection: "column",
+					}}>
 					<TipCalendar4 height={"100%"} width={"100%"} />
 				</View>
 			</View>
 		);
 		let tip_FIVE = (
-			<View style={{ height: "100%", width: "100%",  }}>
-				<View style={{height: "100%", width: "100%",justifyContent:"flex-start", alignItems:"center", flexDirection:"column"}}>
+			<View style={{ height: "100%", width: "100%" }}>
+				<View
+					style={{
+						height: "100%",
+						width: "100%",
+						justifyContent: "flex-start",
+						alignItems: "center",
+						flexDirection: "column",
+					}}>
 					<TipCalendar5 height={"100%"} width={"100%"} />
 				</View>
 			</View>
 		);
+		{(() => {
+			console.log("Past Tips");
+			return null; // Don't render anything
+		})()}
 
 		return (
 			// <KeyboardAvoidingView
@@ -8230,8 +9335,9 @@ export class TrackingPage extends React.Component {
 					backgroundColor: "white",
 					width: "100%",
 					height: "100%",
-					justifyContent: "flex-start",
+					justifyContent: "space-between",
 					alignItems: "center",
+					paddingTop: "15%",
 				}}>
 				<FlashMessage position="bottom" />
 
@@ -8251,7 +9357,7 @@ export class TrackingPage extends React.Component {
 						borderBottomRightRadius: 20,
 						borderTopRightRadius: 20,
 					}}
-					onPress={() => this.setState({ isGuideVis: true })}>
+					onPress={() => this.safeSetState({ isGuideVis: true })}>
 					<Text
 						style={{
 							fontFamily: "RobotoBoldItalic",
@@ -8294,14 +9400,18 @@ export class TrackingPage extends React.Component {
 						</View>
 					</Popover>
 				</View>
+				{(() => {
+        				console.log("Line 9387");
+        				return null; // Don't render anything
+    				})()}
 				{/* Title */}
 				<View
 					style={{
-						height: 28,
 						width: "50%",
-						marginTop: "10%",
+						// marginTop: "10%",
 						alignItems: "center",
 						justifyContent: "center",
+						// backgroundColor:"red",
 						display: this.state.displayTitle,
 						flexDirection: "row",
 					}}>
@@ -8324,14 +9434,20 @@ export class TrackingPage extends React.Component {
 						transparent={true}
 						// hasBackdrop={true}
 						// backdropOpacity={0}
-						// onBackdropPress={() => this.setState({ isReportModalVis: false })}
-						// onSwipeComplete={() => this.setState({ isReportModalVis: false })}
+						// onBackdropPress={() => this.safeSetState({ isReportModalVis: false })}
+						// onSwipeComplete={() => this.safeSetState({ isReportModalVis: false })}
 						// swipeDirection="down"
 					>
-						<View
+						<BlurView
+							intensity={0}
 							style={{
-								width: "100%",
+								position: "absolute",
+								top: 0,
+								left: 0,
+								right: 0,
+								bottom: 0,
 								height: "100%",
+								width: "100%",
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
@@ -8505,7 +9621,7 @@ export class TrackingPage extends React.Component {
 									</TouchableOpacity>
 								</View>
 							</View>
-						</View>
+						</BlurView>
 					</RNModal>
 				</KeyboardAvoidingView>
 				{/* Plan Strategy Detail Modal */}
@@ -8520,10 +9636,10 @@ export class TrackingPage extends React.Component {
 					hasBackdrop={true}
 					backdropOpacity={0}
 					onBackdropPress={() =>
-						this.setState({ isStrategyDetailModalVis: false })
+						this.safeSetState({ isStrategyDetailModalVis: false })
 					}
 					onSwipeComplete={() =>
-						this.setState({ isStrategyDetailModalVis: false })
+						this.safeSetState({ isStrategyDetailModalVis: false })
 					}
 					swipeDirection="down">
 					<View
@@ -8572,9 +9688,9 @@ export class TrackingPage extends React.Component {
 									alignItems: "center",
 									marginTop: "5%",
 								}}>
-								{this.state.keywordsBuddle.map((item) => {
+								{this.state.keywordsBuddle.map((item, index) => {
 									return (
-										<View
+										<View key = {item.id !== undefined ? item.id : `index-${index}`}
 											style={{
 												height: 25,
 												borderRadius: 20,
@@ -8601,6 +9717,57 @@ export class TrackingPage extends React.Component {
 								})}
 							</View>
 						</ScrollView>
+						<TouchableOpacity
+							style={[
+								generalStyles.shadowStyle,
+								{
+									width: 90,
+									height: 35,
+									backgroundColor: "white",
+									marginLeft: 10,
+									borderRadius: 20,
+									flexDirection: "row",
+									justifyContent: "space-between",
+									alignItems: "center",
+									paddingHorizontal: 10,
+									position: "absolute",
+									right: 5,
+									top: 5,
+								},
+							]}
+							onPress={() => {
+								if (this.state.reportCnt != 0) {
+									Alert.alert(
+										"You have unfinished reports",
+										"Please finish all your reports before reviewing planning strategy",
+										[
+											{
+												text: "Cancel",
+												onPress: () => console.log("Cancel Pressed"),
+												style: "cancel",
+											},
+											{ text: "OK", onPress: () => console.log("OK Pressed") },
+										]
+									);
+									return;
+								}
+								this.safeSetState({ isStrategyDetailModalVis: false });
+								this.safeSetState({ isPanelVis: "flex" });
+								// this.safeSetState({isReviewBtnDisabled:true})
+								this.mainContentSwiperRef.current.goToPage(1, true);
+								// this.panelSwiperRef.current.goToPage(0, true);
+							}}>
+							{/* <MaterialIcons name="all-inclusive" size={20} color={GREEN} /> */}
+							<FontAwesome5 name="flag-checkered" size={18} color={GREEN} />
+							<Text
+								style={{
+									fontFamily: "RobotoBoldItalic",
+									fontSize: 14,
+									color: GREEN,
+								}}>
+								Review
+							</Text>
+						</TouchableOpacity>
 					</View>
 				</Modal>
 				{/* Plan Detail View */}
@@ -8619,8 +9786,8 @@ export class TrackingPage extends React.Component {
 					transparent={true}
 					// hasBackdrop={true}
 					// backdropOpacity={0}
-					// onBackdropPress={() => this.setState({ isPlanDetailModalVis: false })}
-					// onSwipeComplete={() => this.setState({ isPlanDetailModalVis: false })}
+					// onBackdropPress={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// onSwipeComplete={() => this.safeSetState({ isPlanDetailModalVis: false })}
 					// swipeDirection="down"
 				>
 					<View
@@ -8659,7 +9826,7 @@ export class TrackingPage extends React.Component {
                 <View>
                   <TouchableOpacity
                     onPress={() =>
-                      this.setState({ isPlanDetailModalVis: false })
+                      this.safeSetState({ isPlanDetailModalVis: false })
                     }
                   >
                     <AntDesign name="closecircle" size={24} color="black" />
@@ -8670,8 +9837,9 @@ export class TrackingPage extends React.Component {
 								<TouchableOpacity
 									style={{ position: "absolute", top: 3, right: 3, zIndex: 1 }}
 									onPress={() => {
-										this.setState({ isPlanDetailModalVis: false });
-
+										this.safeSetState({ isPlanDetailModalVis: false });
+										this.safeSetState({ isReportBtnDisabled: false });
+										this.safeSetState({ reportBtnColor: "black" });
 										// this.reportModalSwiperRef.current.scrollBy(2, true);
 									}}>
 									<AntDesign name="closecircle" size={24} color="black" />
@@ -8915,7 +10083,7 @@ export class TrackingPage extends React.Component {
 													}
 												}
 
-												// console.log("items in plansBuddle", item);
+												console.log("items in plansBuddle", item);
 											}}
 										/>
 									</View>
@@ -8956,6 +10124,640 @@ export class TrackingPage extends React.Component {
 						</View>
 					</View>
 				</RNModal>
+				{/* Previous Strategy Selection Popup */}
+				<RNModal
+					animationType="slide"
+					visible={this.state.isPreStrategyVis}
+					// propagateSwipe={true}
+					// isVisible={this.state.isPlanDetailModalVis}
+					style={{
+						justifyContent: "center",
+						alignItems: "center",
+
+						// marginBottom: 100,
+					}}
+					presentationStyle="overFullScreen"
+					transparent={true}
+					// hasBackdrop={true}
+					// backdropOpacity={0}
+					// onBackdropPress={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// onSwipeComplete={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// swipeDirection="down"
+				>
+					<View
+						style={{
+							alignItems: "center",
+							justifyContent: "center",
+							width: "100%",
+							height: "100%",
+						}}>
+						<View
+							style={[
+								generalStyles.shadowStyle,
+								{
+									height: "90%",
+									width: "95%",
+									backgroundColor: "white",
+									// borderWidth: 2,
+									// borderColor: "black",
+									// flexDirection: "column",
+									justifyContent: "flex-start",
+									alignItems: "center",
+									borderRadius: 15,
+								},
+							]}>
+							<View
+								style={{
+									height: "100%",
+									width: "100%",
+									flexDirection: "column",
+									justifyContent: "space-between",
+									paddingVertical: 15,
+								}}>
+								<TouchableOpacity
+									style={{ position: "absolute", top: 3, right: 3, zIndex: 1 }}
+									onPress={() => {
+										this.safeSetState({ isPreStrategyVis: false });
+
+										// this.reportModalSwiperRef.current.scrollBy(2, true);
+									}}>
+									<AntDesign name="closecircle" size={24} color="black" />
+								</TouchableOpacity>
+								<View
+									style={{
+										justifyContent: "flex-start",
+										flexDirection: "column",
+									}}>
+									<Text
+										style={{
+											fontFamily: "RobotoBoldItalic",
+											fontSize: 18,
+											textAlign: "left",
+											marginLeft: "5%",
+										}}>
+										My Strategies Records
+									</Text>
+									<Text
+										style={{
+											fontFamily: "RobotoBoldBold",
+											fontSize: 12,
+											textAlign: "left",
+											marginLeft: "5%",
+										}}>
+										Select one to see details
+									</Text>
+								</View>
+								<ScrollView
+									style={{
+										width: "100%",
+									}}
+									contentContainerStyle={{
+										alignItems: "center",
+										justifyContent: "flex-start",
+									}}>
+									{this.userStrategies.map((item, index) => {
+										let startDate = new Date(item.startDate);
+										let endDate = new Date(item.endDate);
+										let isTodayInBetween;
+										let isSelected;
+										let today = new Date();
+
+										if (today > startDate && today < endDate) {
+											isTodayInBetween = true;
+										} else {
+											isTodayInBetween = false;
+										}
+										isSelected =
+											item.startDate === this.state.selectedStrategyDate;
+
+										let completionRate;
+										let accCompletion = 0;
+										let totalPlans = 0;
+
+										for (let event of item.plans) {
+											if (!event.isDeleted) {
+												totalPlans++;
+											}
+											if (event.isReported) {
+												if (
+													(event.isActivityCompleted || event.partialStatus != "NONE") &&
+													event.isReported
+												) {
+													accCompletion++;
+												}
+											}
+
+										}
+										completionRate = (
+											(accCompletion / totalPlans) *
+											100
+										).toFixed(2);
+
+										let satisfaction = 0;
+										let satisfactionCnt = 0;
+										let accDuration = 0;
+										for (let event of item.plans) {
+											if (event.satisfactionScore && event.isReported) {
+												satisfaction =
+													satisfaction + parseInt(event.satisfactionScore);
+												satisfactionCnt++;
+												// if (event.isActivityCompleted || event.partialStatus != "NONE") {
+												// 	if (event.newDuration >= 0) {
+												// 		accDuration += event.newDuration;
+												// 	} else {
+												// 		accDuration += event.duration;
+												// 	}
+													
+												// }
+												
+											}
+											if (!event.isDeleted) {
+												let newTiming = "";
+												let timing;
+												if (event.newStart2) {
+													timing =
+														moment(event.newStart2).format("ddd").toUpperCase() +
+														" " +
+														event.newStart2.slice(11, 16) +
+														" - " +
+														event.newEnd2.slice(11, 16) +
+														" | " +
+														event.duration +
+														" MIN";
+												} else {
+													timing =
+														moment(event.start).format("ddd").toUpperCase() +
+														" " +
+														event.start.slice(11, 16) +
+														" - " +
+														event.end.slice(11, 16) +
+														" | " +
+														event.duration +
+														" MIN";
+												}
+												// let itemBlockStyle;
+												if (event.newStart) {
+													newTiming =
+													event.newStart.slice(11, 16) +
+														" - " +
+														event.newEnd.slice(11, 16) +
+														" | " +
+														event.newDuration +
+														" MIN";
+												}
+								
+												if (!event.isReported) {
+													// itemBlockStyle = this.itemUnreportedBlockStyle(
+													//   item,
+													//   timing
+													// );
+												} else {
+													if (event.isActivityCompleted) {
+														// itemBlockStyle = this.itemCompletedBlockStyle(
+														// 	item,
+														// 	timing
+								
+														// );
+														// itemBlockStyle = "COMPLETE";
+														accDuration += event.duration;
+													} else {
+														if (event.isOtherActivity) {
+														} else {
+															if (event.partialStatus) {
+																if (event.partialStatus === "TIME") {
+																	// itemBlockStyle =
+																	// 	this.itemPartialCompleteStyle_TIME(
+																	// 		item,
+																	// 		timing,
+																	// 		newTiming
+																	// 	);
+																		accDuration += event.newDuration;
+																} else if (event.partialStatus === "ACTIVITY") {
+																	// itemBlockStyle =
+																	// 	this.itemPartialCompleteStyle_ACTIVITY(
+																	// 		item,
+																	// 		timing
+																	// 	);
+																		accDuration += event.duration;
+																} else if (event.partialStatus === "NONE") {
+																	// itemBlockStyle = this.itemUnCompletedBlockStyle(
+																	// 	item,
+																	// 	timing
+																	// );
+																	// accDuration += event.duration;
+																} else {
+																	// itemBlockStyle =
+																	// 	this.itemPartialCompleteStyle_TIME_ACTIVITY(
+																	// 		item,
+																	// 		timing,
+																	// 		newTiming
+																	// 	);
+																	accDuration += event.newDuration;
+																}
+															} else {
+															}
+														}
+													}
+												}
+								
+												// return itemBlockStyle;
+											}
+										}
+										let avgSatisfaction = (
+											satisfaction / satisfactionCnt
+										).toFixed(2);
+										console.log("isTodayInBetween", item.title, isTodayInBetween);
+
+										return (
+											<View key = {item.id !== undefined ? item.id : `index-${index}`}
+												style={[
+													// generalStyles.shadowStyle,
+													{
+														height: 90,
+														width: 335,
+														borderColor: isSelected
+															? GREEN
+															: isTodayInBetween
+															? GREEN
+															: "black",
+														borderWidth: 2,
+														borderRadius: 15,
+														marginTop: "5%",
+														flexDirection: "row",
+														backgroundColor: "white",
+													},
+												]}>
+												<TouchableOpacity
+													disabled={isTodayInBetween ? true : false}
+													style={{
+														height: "100%",
+														width: "100%",
+
+														// borderRightColor: "black",
+														// borderRightWidth: 2,
+														paddingLeft: 0,
+														paddingVertical: 0,
+														justifyContent: "space-between",
+														alignItems: "flex-start",
+														flexDirection: "column",
+													}}
+													onPress={async () =>
+														// this.safeSetState({ isStrategyDetailModalVis: true })
+														{
+															this.safeSetState({ isPreStrategyVis: false });
+															setTimeout(() => {
+																this._panel.hide();
+															});
+															this.safeSetState({
+																hideIcon2: (
+																	<Ionicons
+																		name="chevron-up-circle"
+																		size={25}
+																		color="black"
+																	/>
+																),
+															});
+															this.safeSetState({ isPanelHided: true });
+
+															let thisMonthNum = parseInt(
+																moment(new Date()).format().slice(5, 7)
+															);
+															let selectedMonthNum = parseInt(
+																item.startDate.slice(5, 7)
+															);
+															console.log("selectedMonthNum", selectedMonthNum);
+															console.log("thisMonthNum", thisMonthNum);
+															this.safeSetState({ selectedStrategy: item });
+															this.safeSetState({
+																selectedKeywords: item.keywords,
+															});
+															this.safeSetState({
+																selectedStrategyPlans: item.plans,
+															});
+															if (thisMonthNum > selectedMonthNum) {
+																this.pastMonthBtnPressed();
+																this.safeSetState({
+																	selectedStrategyDate: item.startDate,
+																});
+																this.safeSetState({
+																	monthCalStrategyStartDate: item.startDate,
+																});
+																if (thisMonthNum != selectedMonthNum + 2) {
+																	let eventDate = new Date(item.startDate);
+																	await this.safeSetState({
+																		selectedDateRaw: eventDate,
+																	});
+																	await this.safeSetState({
+																		currentMonthDate:
+																			this.state.selectedDateRaw,
+																	});
+																	this.scrollToThisWeek();
+																}
+															} else if (thisMonthNum < selectedMonthNum) {
+																this.nextMonthBtnPressed();
+																this.safeSetState({
+																	selectedStrategyDate: item.startDate,
+																});
+																this.safeSetState({
+																	monthCalStrategyStartDate: item.startDate,
+																});
+																let eventDate = new Date(item.startDate);
+																await this.safeSetState({
+																	selectedDateRaw: eventDate,
+																});
+																await this.safeSetState({
+																	currentMonthDate: this.state.selectedDateRaw,
+																});
+																this.scrollToThisWeek();
+															} else {
+																if (this.state.currentMonth != "THIS_MONTH") {
+																	this.resetCalendarToCurrentMonth();
+																}
+															}
+
+															this.safeSetState({
+																selectedStrategyDate: item.startDate,
+															});
+															this.safeSetState({
+																monthCalStrategyStartDate: item.startDate,
+															});
+															if (thisMonthNum != selectedMonthNum + 2) {
+																let eventDate = new Date(item.startDate);
+																await this.safeSetState({
+																	selectedDateRaw: eventDate,
+																});
+																await this.safeSetState({
+																	currentMonthDate: this.state.selectedDateRaw,
+																});
+																this.scrollToThisWeek();
+															}
+														}
+													}>
+													<View
+														style={{
+															flexDirection: "column",
+															justifyContent: "flex-start",
+															width: "100%",
+															height: "70%",
+															borderTopLeftRadius: 13,
+															borderTopRightRadius: 13,
+															backgroundColor: isSelected ? GREEN : "black",
+														}}>
+														<View
+															style={{
+																flexDirection: "row",
+																alignItems: "center",
+																justifyContent: "flex-start",
+																marginTop: 10,
+															}}>
+															<View
+																style={{
+																	flexDirection: "row",
+																	alignItems: "center",
+																	justifyContent: "center",
+																}}>
+																<Text
+																	style={{
+																		fontFamily: "RobotoBoldBlack",
+																		fontSize: 15,
+																		marginBottom: 0,
+																		marginRight: 10,
+
+																		alignItems: "center",
+																		justifyContent: "center",
+																		marginLeft: "10%",
+																		color: "white",
+																		alignSelf: "center",
+																		textAlign: "center",
+																	}}>
+																	{item.title}
+																</Text>
+															</View>
+															<View
+																style={{
+																	flexDirection: "column",
+																	justifyContent: "center",
+																	// backgroundColor: "red",
+																	position:"absolute",
+																	right:10,
+																	alignItems: "center",
+																	backgroundColor: "white",
+																	borderRadius: 20,
+																	paddingHorizontal: 10,
+																}}>
+																<Text
+																	style={{
+																		fontSize: 12,
+																		fontFamily: "RobotoBoldBold",
+																		textAlign: "center",
+																		marginTop: 0,
+																		color: isSelected ? GREEN : "black",
+																	}}>
+																	{item.startDate.slice(5)} →{" "}
+																	{item.endDate.slice(5)}
+																</Text>
+															</View>
+															{/* <View style={{ position: "absolute", right: 5 }}>
+																{isTodayInBetween ? (
+																	<FontAwesome5
+																		name="play-circle"
+																		size={18}
+																		color="white"
+																	/>
+																) : (
+																	<MaterialIcons
+																		name="motion-photos-paused"
+																		size={20}
+																		color="white"
+																	/>
+																)}
+															</View> */}
+														</View>
+														<View
+															style={{
+																width: "100%",
+																flexDirection: "row",
+																paddingLeft: "6%",
+																alignItems: "center",
+																justifyContent: "flex-start",
+																paddingHorizontal: 25,
+																marginTop: 5,
+																// backgroundColor:"red"
+															}}>
+															<View
+																style={{
+																	flexDirection: "row",
+																	alignItems: "center",
+																	marginRight: 10,
+																}}>
+																<Ionicons
+																	name="checkmark-circle"
+																	size={15}
+																	color="white"
+																/>
+																<Text
+																	style={{
+																		fontWeight: "bold",
+																		fontSize: 11,
+																		color: "white",
+																		marginLeft: 5,
+																	}}>
+																	{completionRate}%
+																</Text>
+															</View>
+															<View
+																style={{
+																	flexDirection: "row",
+																	alignItems: "center",
+																	marginRight: 10,
+																}}>
+																<View
+																	style={{
+																		alignItems: "center",
+																		justifyContent: "center",
+																		borderRadius: 20,
+																		backgroundColor: "white",
+																		height: 13,
+																		width: 13,
+																	}}>
+																	<AntDesign
+																		name="like1"
+																		size={8}
+																		color="black"
+																	/>
+																</View>
+																<Text
+																	style={{
+																		fontWeight: "bold",
+																		fontSize: 11,
+																		color: "white",
+																		marginLeft: 5,
+																	}}>
+																	{item.rating}
+																</Text>
+															</View>
+															<View
+																style={{
+																	flexDirection: "row",
+																	alignItems: "center",
+																	marginRight: 10,
+																}}>
+																<Ionicons
+																	name="timer"
+																	size={15}
+																	color="white"
+																/>
+																<Text
+																	style={{
+																		fontWeight: "bold",
+																		fontSize: 11,
+																		color: "white",
+																		marginLeft: 5,
+																	}}>
+																	{accDuration} min
+																</Text>
+															</View>
+															<View
+																style={{
+																	flexDirection: "row",
+																	alignItems: "center",
+																	marginRight: 10,
+																}}>
+																<Ionicons
+																	name="heart-circle"
+																	size={15}
+																	color="white"
+																/>
+																<Text
+																	style={{
+																		fontWeight: "bold",
+																		fontSize: 11,
+																		color: "white",
+																		marginLeft: 5,
+																	}}>
+																	{avgSatisfaction}
+																</Text>
+															</View>
+														</View>
+													</View>
+
+													<ScrollView
+														horizontal={true}
+														style={{
+															width: "100%",
+															height: "30%",
+															flexDirection: "row",
+														}}
+														contentContainerStyle={{
+															paddingLeft: "5%",
+															paddingRight: "5%",
+															alignItems: "center",
+														}}>
+														{item.keywords.map((item, index) => {
+															return (
+																<View key = {item.id !== undefined ? item.id : `index-${index}`}
+																	style={{
+																		borderRadius: 20,
+																		height: 32,
+																		// backgroundColor: "#E7E7E7",
+																		marginRight: 2,
+																		padding: 5,
+																		alignItems: "center",
+																		justifyContent: "center",
+																	}}>
+																	<Text
+																		style={{
+																			color: "black",
+																			fontWeight: "bold",
+																			fontSize: 13,
+																		}}>
+																		# {item.title}
+																	</Text>
+																</View>
+															);
+														})}
+														{/* <FlatList
+                  horizontal={true}
+                  contentContainerStyle={{
+                    flexDirection: "row",
+                    width: "100%",
+                    backgroundColor: "red",
+                  }}
+                  data={this.state.keywordsBuddle}
+                  renderItem={({ item }) => {
+                    return (
+                      <View
+                        style={{
+                          borderRadius: 20,
+                          backgroundColor: "#E7E7E7",
+                          marginRight: 2,
+                          padding: 5,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "black",
+                            fontWeight: "bold",
+                            color: "#1AB700",
+                            fontSize: 8,
+                          }}
+                        >
+                          # {item.title}
+                        </Text>
+                      </View>
+                    );
+                  }}
+                /> */}
+													</ScrollView>
+												</TouchableOpacity>
+											</View>
+										);
+									})}
+								</ScrollView>
+							</View>
+						</View>
+					</View>
+				</RNModal>
 				{/* Calendar View & Buttons */}
 				<View
 					style={{
@@ -8966,7 +10768,54 @@ export class TrackingPage extends React.Component {
 						backgroundColor: "white",
 						marginBottom: 0,
 					}}>
-					<CalendarHeader height={15} width={"100%"} />
+					{/* <CalendarHeader height={15} width={"100%"} /> */}
+					<View
+						style={{
+							width: "100%",
+							height: 20,
+							flexDirection: "row",
+							justifyContent: "space-between",
+							paddingHorizontal: 4,
+						}}>
+						{weekDays.map((item, index) => {
+							return (
+								<View key = {item.id !== undefined ? item.id : `index-${index}`}
+									style={{
+										flex: 0.2,
+										height: 18,
+										width: "95%",
+										flexDirection: "row",
+										backgroundColor: "white",
+										borderRadius: 15,
+										justifyContent: "center",
+										alignItems: "center",
+									}}>
+									<View
+										style={{
+											flex: 1,
+											height: "100%",
+											width: "100%",
+											justifyContent: "center",
+											alignItems: "center",
+											flexDirection: "row",
+										}}>
+										<Text
+											style={{
+												textAlign: "center",
+												alignSelf: "center",
+												justifyContent: "center",
+												alignContent: "center",
+												fontSize: 16,
+												color: "black",
+												fontWeight: "bold",
+											}}>
+											{item}
+										</Text>
+									</View>
+								</View>
+							);
+						})}
+					</View>
 					<View
 						style={{
 							height: this.state.calendarViewHeight,
@@ -9107,8 +10956,8 @@ export class TrackingPage extends React.Component {
 					transparent={true}
 					// hasBackdrop={true}
 					// backdropOpacity={0}
-					// onBackdropPress={() => this.setState({ isPlanDetailModalVis: false })}
-					// onSwipeComplete={() => this.setState({ isPlanDetailModalVis: false })}
+					// onBackdropPress={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// onSwipeComplete={() => this.safeSetState({ isPlanDetailModalVis: false })}
 					// swipeDirection="down"
 				>
 					<View
@@ -9131,14 +10980,43 @@ export class TrackingPage extends React.Component {
 								},
 							]}>
 							<TouchableOpacity
-								style={{ position: "absolute", top: "5%", right: 10, zIndex: 1 }}
+								style={{
+									position: "absolute",
+									top: "5%",
+									right: 10,
+									zIndex: 1,
+								}}
 								onPress={() => {
-									this.setState({ isGuideVis: false });
+									this.safeSetState({ isGuideVis: false });
+									this.safeSetState({ currentGuideStep: 1 });
 
 									// this.reportModalSwiperRef.current.scrollBy(2, true);
 								}}>
 								{/* <AntDesign name="closecircle" size={24} color="black" /> */}
-								<Text style={{fontWeight:"bold", color:"white", fontSize:18}}>SKIP</Text>
+								<Text
+									style={{ fontWeight: "bold", color: "white", fontSize: 18 }}>
+									SKIP
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={{
+									position: "absolute",
+									bottom: "3%",
+									right: 10,
+									zIndex: 1,
+									display: this.state.currentGuideStep === 6 ? "flex" : "none",
+								}}
+								onPress={() => {
+									this.safeSetState({ isGuideVis: false });
+									this.safeSetState({ currentGuideStep: 1 });
+
+									// this.reportModalSwiperRef.current.scrollBy(2, true);
+								}}>
+								{/* <AntDesign name="closecircle" size={24} color="black" /> */}
+								<Text
+									style={{ fontWeight: "bold", color: "white", fontSize: 18 }}>
+									DONE
+								</Text>
 							</TouchableOpacity>
 							<Swiper
 								activeDotColor="white"
@@ -9149,8 +11027,50 @@ export class TrackingPage extends React.Component {
 								keyboardShouldPersistTaps="handled"
 								scrollEnabled={false}
 								ref={this.tipModalSwiperRef}
-								nextButton={<TouchableOpacity onPress={()=>{this.tipModalSwiperRef.current.scrollBy(1,false)}}><Text style={{ fontWeight: "bold", color:"white",fontSize:18 }}>NEXT</Text></TouchableOpacity>}
-								prevButton={<TouchableOpacity onPress={()=>{this.tipModalSwiperRef.current.scrollBy(-1,false)}}><Text style={{ fontWeight: "bold", color:"white",fontSize:18 }}>PREV</Text></TouchableOpacity>}
+								nextButton={
+									<TouchableOpacity
+										onPress={() => {
+											this.tipModalSwiperRef.current.scrollBy(1, false);
+											let currentGuideStep = this.state.currentGuideStep;
+											currentGuideStep++;
+											this.safeSetState({ currentGuideStep: currentGuideStep });
+											console.log(
+												"this.state.currentGuideStep",
+												this.state.currentGuideStep
+											);
+										}}>
+										<Text
+											style={{
+												fontWeight: "bold",
+												color: "white",
+												fontSize: 18,
+											}}>
+											NEXT
+										</Text>
+									</TouchableOpacity>
+								}
+								prevButton={
+									<TouchableOpacity
+										onPress={() => {
+											this.tipModalSwiperRef.current.scrollBy(-1, false);
+											let currentGuideStep = this.state.currentGuideStep;
+											currentGuideStep--;
+											this.safeSetState({ currentGuideStep: currentGuideStep });
+											console.log(
+												"this.state.currentGuideStep",
+												this.state.currentGuideStep
+											);
+										}}>
+										<Text
+											style={{
+												fontWeight: "bold",
+												color: "white",
+												fontSize: 18,
+											}}>
+											PREV
+										</Text>
+									</TouchableOpacity>
+								}
 								showsPagination={true}
 								buttonWrapperStyle={{
 									backgroundColor: "transparent",
@@ -9171,10 +11091,297 @@ export class TrackingPage extends React.Component {
 								{tip_THREE}
 								{tip_FOUR}
 								{tip_FIVE}
+								{tip_FIVE}
 							</Swiper>
 						</View>
 					</View>
 				</RNModal>
+				{/* Review Popup */}
+				<RNModal
+					animationType="slide"
+					visible={this.state.isReviewPopVis}
+					// propagateSwipe={true}
+					// isVisible={this.state.isPlanDetailModalVis}
+					style={{
+						justifyContent: "center",
+						alignItems: "center",
+
+						// marginBottom: 100,
+					}}
+					presentationStyle="overFullScreen"
+					transparent={true}
+					// hasBackdrop={true}
+					// backdropOpacity={0}
+					// onBackdropPress={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// onSwipeComplete={() => this.safeSetState({ isPlanDetailModalVis: false })}
+					// swipeDirection="down"
+				>
+					<BlurView
+						intensity={30}
+						style={{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							right: 0,
+							bottom: 0,
+							height: "100%",
+							width: "100%",
+							justifyContent: "center",
+							alignItems: "center",
+						}}>
+						<View
+							style={[
+								{
+									width: "90%",
+									height: "70%",
+									borderRadius: 20,
+									// backgroundColor: "white",
+									justifyContent: "space-between",
+									alignItems: "center",
+								},
+							]}>
+							<View
+								style={{
+									flexDirection: "row",
+									justifyContent: "space-between",
+									alignItems: "center",
+									marginTop: "40%",
+									width: "100%",
+									flexDirection: "column",
+								}}>
+								<Text
+									style={{
+										fontFamily: "RobotoBoldItalic",
+										fontSize: 23,
+										marginBottom: 20,
+									}}>
+									Tell us how you think this current strategy is working so far:{" "}
+								</Text>
+								{/* Current Planning Strategy */}
+								<View>
+									<View
+										style={[
+											generalStyles.shadowStyle,
+											{
+												height: 81,
+												width: 335,
+												borderColor: GREEN,
+												borderWidth: 2,
+												borderRadius: 20,
+												marginTop: "2%",
+												flexDirection: "row",
+												backgroundColor: "white",
+											},
+										]}>
+										<TouchableOpacity
+											style={{
+												height: "100%",
+												width: "100%",
+
+												// borderRightColor: "black",
+												// borderRightWidth: 2,
+												paddingLeft: 0,
+												paddingVertical: 0,
+												justifyContent: "space-between",
+												alignItems: "flex-start",
+												flexDirection: "column",
+											}}
+											onPress={() =>
+												this.safeSetState({ isStrategyDetailModalVis: true })
+											}>
+											<View
+												style={{
+													flexDirection: "row",
+													alignItems: "center",
+													justifyContent: "flex-start",
+													width: "100%",
+													height: "50%",
+													borderTopLeftRadius: 18,
+													borderTopRightRadius: 18,
+													backgroundColor: GREEN,
+												}}>
+												<View
+													style={{
+														flexDirection: "row",
+														alignItems: "center",
+														justifyContent: "center",
+													}}>
+													<Text
+														style={{
+															fontFamily: "RobotoBoldBlack",
+															fontSize: 18,
+															marginBottom: 0,
+															marginRight: 10,
+															alignItems: "center",
+															justifyContent: "center",
+															marginLeft: "10%",
+															color: "white",
+															alignSelf: "center",
+															textAlign: "center",
+														}}>
+														{this.state.planStrategyName}
+													</Text>
+												</View>
+												<View
+													style={{
+														flexDirection: "column",
+														justifyContent: "center",
+														// backgroundColor: "red",
+														alignItems: "center",
+														backgroundColor: "white",
+														borderRadius: 20,
+														paddingHorizontal: 10,
+													}}>
+													<Text
+														style={{
+															fontSize: 12,
+															fontFamily: "RobotoBoldBold",
+															textAlign: "center",
+															marginTop: 0,
+															color: GREEN,
+														}}>
+														{this.state.strategyDuration}
+													</Text>
+												</View>
+												{/* <View style={{ position: "absolute", right: 5 }}>
+													<FontAwesome5
+														name="play-circle"
+														size={18}
+														color="white"
+													/>
+												</View> */}
+											</View>
+											<ScrollView
+												horizontal={true}
+												style={{
+													width: "100%",
+													height: "50%",
+													flexDirection: "row",
+												}}
+												contentContainerStyle={{
+													alignItems: "center",
+													paddingLeft: "5%",
+													paddingRight: "5%",
+												}}>
+												{this.state.keywordsBuddle.map((item, index) => {
+													return (
+														<View key = {item.id !== undefined ? item.id : `index-${index}`}
+															style={{
+																borderRadius: 20,
+																height: 32,
+																// backgroundColor: "#E7E7E7",
+																marginRight: 2,
+																padding: 5,
+															}}>
+															<Text
+																style={{
+																	color: "black",
+																	fontWeight: "bold",
+																	color: "#1AB700",
+																	fontSize: 13,
+																}}>
+																# {item.title}
+															</Text>
+														</View>
+													);
+												})}
+											</ScrollView>
+										</TouchableOpacity>
+										<TouchableOpacity
+											style={{
+												position: "absolute",
+												borderBottomRightRadius: 18,
+												borderTopRightRadius: 18,
+												left: 250,
+												top: 0,
+												bottom: 0,
+												right: 0,
+												backgroundColor: "white",
+												borderColor: GREEN,
+												borderLeftWidth: 2,
+												justifyContent: "space-between",
+												alignItems: "center",
+												paddingVertical: 15,
+											}}
+											disabled={this.state.isReviewBtnDisabled}
+											onPress={() => {
+												if (this.state.reportCnt != 0) {
+													Alert.alert(
+														"You have unfinished reports",
+														"Please finish all your reports before reviewing planning strategy",
+														[
+															{
+																text: "Cancel",
+																onPress: () => console.log("Cancel Pressed"),
+																style: "cancel",
+															},
+															{
+																text: "OK",
+																onPress: () => console.log("OK Pressed"),
+															},
+														]
+													);
+													return;
+												}
+												this.safeSetState({ isPanelVis: "flex" });
+												this.evaluatePanelPopup();
+												this.mainContentSwiperRef.current.goToPage(1, true);
+												this.safeSetState({ isReviewPopVis: false });
+												// this.panelSwiperRef.current.goToPage(0, true);
+											}}>
+											<FontAwesome5
+												name="flag-checkered"
+												size={18}
+												color={GREEN}
+											/>
+											<Text
+												style={{
+													fontFamily: "RobotoBoldItalic",
+													color: GREEN,
+													fontSize: 18,
+												}}>
+												Review
+											</Text>
+										</TouchableOpacity>
+									</View>
+								</View>
+								<Text
+									style={{
+										fontFamily: "RobotoBoldItalic",
+										fontSize: 18,
+										marginTop: 40,
+										width: "90%",
+									}}>
+									Click the <Text style={{ color: GREEN }}>Review</Text> button
+									above to start your weekly reviewing process
+								</Text>
+							</View>
+
+							<TouchableOpacity
+								style={{
+									justifyContent: "center",
+									alignItems: "center",
+									flexDirection: "row",
+								}}
+								onPress={() => {
+									this.safeSetState({ isReviewPopVis: false });
+
+									// this.reportModalSwiperRef.current.scrollBy(2, true);
+								}}>
+								<AntDesign name="closecircle" size={24} color="black" />
+								<Text
+									style={{
+										fontFamily: "RobotoBoldItalic",
+										fontSize: 12,
+										marginLeft: 10,
+									}}>
+									Skip for now
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</BlurView>
+				</RNModal>
+
 				{/* Confirmation Page */}
 				{/* <View
           style={{
@@ -9186,17 +11393,145 @@ export class TrackingPage extends React.Component {
         >
           {finalConfirmationPage}
         </View> */}
+				{/* Bottom buttons */}
+				<View
+					style={[
+						{
+							width: "100%",
+							height: 60,
+							position: "absolute",
+							bottom: 10,
+							backgroundColor: "transparent",
+							zIndex: 1,
+							justifyContent: "space-between",
+							alignItems: "center",
+							flexDirection: "row",
+							paddingHorizontal: "5%",
+							display: this.state.bottomBtnVis,
+						},
+					]}>
+					<TouchableOpacity
+						style={[
+							// generalStyles.shadowStyle,
+							{
+								backgroundColor: "white",
+								justifyContent: "center",
+								alignItems: "center",
+								borderRadius: 20,
+								height: 30,
+								width: 100,
+							},
+						]}
+						onPress={async () => {
+							this.safeSetState({ archiveIconColor: "grey" });
+							this.safeSetState({ homeIconColor: "black" });
+							this.mainContentSwiperRef.current.goToPage(0, true);
+							this.safeSetState({ selectedStrategy: this.currentStrategy });
+							this.safeSetState({
+								selectedKeywords: this.currentStrategy.keywords,
+							});
+							this.safeSetState({
+								selectedStrategyPlans: this.currentStrategy.plans,
+							});
+							this.safeSetState({
+								title: "Tracking",
+							});
+							this.safeSetState({ selectedStrategyDate: "" });
+							if (this.state.currentMonth != "THIS_MONTH") {
+								this.resetCalendarToCurrentMonth();
+							}
+
+							this.safeSetState({
+								selectedStrategyDate: this.currentStrategy.startDate,
+							});
+							this.safeSetState({
+								monthCalStrategyStartDate: this.currentStrategy.startDate,
+							});
+							let eventDate = new Date(this.currentStrategy.startDate);
+							await this.safeSetState({ selectedDateRaw: eventDate });
+							await this.safeSetState({
+								currentMonthDate: this.state.selectedDateRaw,
+							});
+							this.scrollToThisWeek();
+						}}>
+						<Entypo name="home" size={24} color={this.state.homeIconColor} />
+					</TouchableOpacity>
+					<TouchableOpacity
+						onPress={() => {
+							this.props.navigation.navigate("BeforeLoginScreen", {
+								// userEmail: this.state.userEmail,
+							});
+						}}>
+						<Ionicons name="refresh-circle" size={40} color="black" />
+					</TouchableOpacity>
+					{/* <TouchableOpacity
+							style={[
+								generalStyles.shadowStyle,
+								{
+									width: 100,
+									height: 40,
+									backgroundColor: "white",
+									borderRadius: 20,
+									flexDirection: "row",
+									justifyContent: "space-between",
+									alignItems: "center",
+									paddingHorizontal: 15,
+									marginBottom: 30,
+								},
+							]}
+							onPress={() => {
+								this.safeSetState({ isPanelVis: "flex" });
+								this.evaluatePanelPopup();
+								this.mainContentSwiperRef.current.goToPage(1, true);
+							}}>
+							<FontAwesome5 name="flag-checkered" size={18} color={GREEN} />
+							<Text
+								style={{
+									fontFamily: "RobotoBoldItalic",
+									fontSize: 14,
+									color: GREEN,
+								}}>
+								Review
+							</Text>
+						</TouchableOpacity> */}
+					<TouchableOpacity
+						style={[
+							// generalStyles.shadowStyle,
+							{
+								backgroundColor: "white",
+								justifyContent: "center",
+								alignItems: "center",
+								borderRadius: 20,
+								height: 30,
+								width: 100,
+							},
+						]}
+						onPress={() => {
+							this.mainContentSwiperRef.current.goToPage(1, true);
+							this.safeSetState({ archiveIconColor: "black" });
+							this.safeSetState({ homeIconColor: "grey" });
+						}}>
+						<Entypo
+							name="archive"
+							size={24}
+							color={this.state.archiveIconColor}
+						/>
+					</TouchableOpacity>
+				</View>
 				{/* Body info */}
 				<View
 					style={[
 						generalStyles.shadowStyle,
 						{
-							height: "100%",
+							height: 530,
 							width: "100%",
 							backgroundColor: "white",
 							borderRadius: 20,
+							paddingBottom: 20,
 							paddingTop: 20,
 							display: this.state.mainContentSwiperDisplay,
+							// position:"absolute",
+							// bottom:0,
 						},
 					]}>
 					{/* <Swiper gesturesEnabled={() => false} ref={this.mainContentSwiperRef}>
@@ -9204,14 +11539,89 @@ export class TrackingPage extends React.Component {
             {summaryPage}
             {finalConfirmationPage}
           </Swiper> */}
+
 					<Onboarding
 						bottomBarHighlight={false}
+						bottomBarHeight={30}
 						ref={this.mainContentSwiperRef}
+						imageContainerStyles={{ height: "100%" }}
 						showSkip={false}
 						showNext={false}
-						pageIndexCallback={(index) => {
-							if (this.state.evaluatePanelDisplay === "none") {
-								this.panelSwiperRef.current.goToPage(index, true);
+						showDone={false}
+						showPagination={false}
+						pageIndexCallback={async (index) => {
+							this.safeSetState({ mainContentSwiperDisplay: "flex" });
+							this.safeSetState({ conformationPageDisplay: "none" });
+							this.mainContentSwiperRef.current.goToPage(index, true);
+
+							//
+							this.safeSetState({ displayCalView: "flex" });
+							this.safeSetState({ displayTitle: "flex" });
+							if (index === 1) {
+								this.safeSetState({ archiveIconColor: "black" });
+								this.safeSetState({ homeIconColor: "grey" });
+								this.safeSetState({ panelHeight: 300 });
+								this._panel.hide();
+								this.safeSetState({
+									hideIcon2: (
+										<Ionicons
+											name="chevron-up-circle"
+											size={25}
+											color="black"
+										/>
+									),
+								});
+								this.safeSetState({ isPanelHided: true });
+								this.safeSetState({
+									title: "Strategies",
+								});
+							} else if (index === 0) {
+								this.safeSetState({ archiveIconColor: "grey" });
+								this.safeSetState({ homeIconColor: "black" });
+								this._panel.show();
+								this.safeSetState({
+									hideIcon2: (
+										<Ionicons
+											name="chevron-down-circle"
+											size={25}
+											color="black"
+										/>
+									),
+								});
+								this.safeSetState({ isPanelHided: false });
+								this.onHideDetailPressed2();
+								// this.onHideDetailPressed2();
+								this.safeSetState({ selectedStrategy: this.currentStrategy });
+								this.safeSetState({
+									selectedKeywords: this.currentStrategy.keywords,
+								});
+								this.safeSetState({
+									selectedStrategyPlans: this.currentStrategy.plans,
+								});
+								this.safeSetState({ panelHeight: 250 });
+								this.safeSetState({
+									title: "Tracking",
+								});
+								this.safeSetState({ selectedStrategyDate: "" });
+								// this._panel.hide();
+								console.log("this.state.currentMonth",this.state.currentMonth);
+								// if (this.state.currentMonth != "THIS_MONTH") {
+								console.log("reset month");
+								this.resetCalendarToCurrentMonth();
+								// }
+
+								this.safeSetState({
+									selectedStrategyDate: this.currentStrategy.startDate,
+								});
+								this.safeSetState({
+									monthCalStrategyStartDate: this.currentStrategy.startDate,
+								});
+								let eventDate = new Date(this.currentStrategy.startDate);
+								await this.safeSetState({ selectedDateRaw: eventDate });
+								await this.safeSetState({
+									currentMonthDate: this.state.selectedDateRaw,
+								});
+								this.scrollToThisWeek();
 							}
 						}}
 						pages={[
@@ -9230,6 +11640,12 @@ export class TrackingPage extends React.Component {
 						]}
 					/>
 				</View>
+
+				{(() => {
+        				console.log("EoF");
+        				return null; // Don't render anything
+    			})()}
+
 				{/* Slide Up Panel */}
 				{slideUpPanel}
 			</View>

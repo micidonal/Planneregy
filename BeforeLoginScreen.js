@@ -11,266 +11,304 @@ import { getDataModel } from "./DataModel";
 import * as Location from "expo-location";
 import { WEATHER_API_KEY } from "./secret";
 
-console.log("In BeforeLoginScreen.js...");
-
 export class BeforeLoginScreen extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      firstScreenName: "",
-      fontsLoaded: false,
-      userEmail: "",
-      data: {},
-      isLoaderVis: false,
-      dataType: "",
-    };
-    // this.checkIfUserExist();
-  }
-  //Get DataModel
-  componentDidMount() {
-    this.setState({
-      isLoaderVis: !this.state.isLoaderVis,
-    });
+	constructor(props) {
+		super(props);
+		this.state = {
+			firstScreenName: "",
+			fontsLoaded: false,
+			userEmail: "",
+			data: {},
+			isLoaderVis: false,
+			dataType: "",
+		};
+		// this.checkIfUserExist();
+	}
+	//Get DataModel
+	componentDidMount() {
+		// this.setState({
+		//   isLoaderVis: !this.state.isLoaderVis,
+		// });
 
-    this.dataModel = getDataModel();
-    this.dataModel.asyncInit();
+		// this.dataModel = getDataModel();
+		// this.dataModel.asyncInit();
 
-    this.loadFonts();
-    this.checkIfUserExist();
+		// this.loadFonts();
+		// this.checkIfUserExist();
+		this.focusUnsubscribe = this.props.navigation.addListener(
+			"focus",
+			this.onFocus
+		);
 
-    // console.log(
-    //   "this.state.firstScreenName componentDidMount",
-    //   this.state.firstScreenName
-    // );
-  }
+		// console.log(
+		//   "this.state.firstScreenName componentDidMount",
+		//   this.state.firstScreenName
+		// );
+	}
+	onFocus = async () => {
+		this.setState({
+			isLoaderVis: !this.state.isLoaderVis,
+		});
 
-  async loadFonts() {
-    await Font.loadAsync({
-      RobotoBoldBlack: require("./assets/fonts/Roboto-Black.ttf"),
+		this.dataModel = getDataModel();
+		this.dataModel.asyncInit();
+
+		this.loadFonts();
+		this.checkIfUserExist();
+	};
+	async loadFonts() {
+		await Font.loadAsync({
+			RobotoBoldBlack: require("./assets/fonts/Roboto-Black.ttf"),
       RobotoBoldItalic: require("./assets/fonts/Roboto-BlackItalic.ttf"),
-    });
-    this.setState({ fontsLoaded: true });
-  }
+		});
+		this.setState({ fontsLoaded: true });
+	}
 
-  checkIfUserExist = async () => {
-    // await this.setState({isLoaderVis:true});
-    //Get local-stored user basic info
-    let emailAddress = await SecureStore.getItemAsync("USER_EMAIL");
-    console.log("User Email: ", emailAddress);
-    let accessToken = await SecureStore.getItemAsync("ACCESS_TOKEN");
-    console.log("User Token: ", accessToken);
-    let key = await SecureStore.getItemAsync("USER_KEY");
-    console.log("User Key: ", key);
+	checkIfUserExist = async () => {
+		// await this.setState({isLoaderVis:true});
+		//Get local-stored user basic info
+		let emailAddress;
+		let accessToken;
+		let key;
+		// if (this.props.route.params.isFromLogin) {
+		//   emailAddress = this.props.route.params.userEmail;
+		//   accessToken = this.props.route.params.key;
+		//   key = this.props.route.params.accessToken;
+		// } else {
+		emailAddress = await SecureStore.getItemAsync("USER_EMAIL");
+		accessToken = await SecureStore.getItemAsync("ACCESS_TOKEN");
+		key = await SecureStore.getItemAsync("USER_KEY");
+		// }
 
-    if (emailAddress) {
-      //Get the date range
-      let [dateMin, dateMax] = this.processDate();
-      //Get users' Google calendar events
-      console.log("dateMin, dateMax", dateMin, dateMax);
-      let calendarsEventList = await this.getUsersCalendarEvents(
-        accessToken,
-        emailAddress,
-        dateMin,
-        dateMax
-      );
+		// let emailAddressFB;
+		// await this.dataModel.loadAllUserEmails();
 
-      console.log("Getting Calendar JSON...");
+		// console.log("key", key);
+		if (emailAddress) {
+			//User already exist
+			console.log("email address exist");
+			//Get the date range
+			let [dateMin, dateMax] = this.processDate();
+			//Get users' Google calendar events
+			console.log("dateMin, dateMax", dateMin, dateMax);
+			let calendarsEventList = await this.getUsersCalendarEvents(
+				accessToken,
+				emailAddress,
+				dateMin,
+				dateMax
+			);
+      console.log("Before JSON conversion!");
+			let calendarEventListJSON = await calendarsEventList;
+			console.log("Before process event");
+			//Process Google calendar events into list for calendar view
+			let [previousMonthList, thisMonthList, nextMonthList, fullEventList] =
+				this.processCalEvent(calendarEventListJSON.items);
+			console.log("after process event");
+			//Get user-defined activity types
+			let userDefineActivitiesNotExist =
+				await this.dataModel.isUserDefineActivitiesExist(key);
+			if (userDefineActivitiesNotExist) {
+				await this.dataModel.createUserActivities(key);
+			}
+			this.setState({ dataType: "user activities" });
+			let userActivityList = await this.dataModel.getUserActivities(key);
+			console.log("userActivityList",userActivityList);
+			//Get user's plans made in the app
+			await this.dataModel.loadUserPlans(key);
+			let userPlans = [];
+			userPlans = this.dataModel.getUserPlans();
+			console.log("userPlans",userPlans);
 
-      let calendarEventListJSON = await calendarsEventList;
+			await this.dataModel.loadUserStrategies(key);
+			let userStrategies = this.dataModel.getUserStrategies();
 
-      console.log("Calendar JSON Acquired!");
+			let navToScreen = "";
+			//Object: user's basic
+			let userInfo = {
+				key: key,
+				userPlans: userPlans,
+			};
 
-      //Process Google calendar events into list for calendar view
-      let [previousMonthList, thisMonthList, nextMonthList, fullEventList] =
-        this.processCalEvent(calendarEventListJSON.items);
+			let lastMonthWeather;
+			let thisMonthWeather;
+			let nextMonthWeather;
+			let isGuideVis = false;
 
-      console.log("Past Process Cal Event!");
+			let isEvaluationDate = false;
 
-      //Get user-defined activity types
-      let userDefineActivitiesNotExist =
-        await this.dataModel.isUserDefineActivitiesExist(key);
-      if (userDefineActivitiesNotExist) {
-        await this.dataModel.createUserActivities(key);
-      }
+			let todayDateFormat = moment(new Date()).format().slice(0, 10);
+			let recordEndDate = await SecureStore.getItemAsync("END_DATE");
+			// console.log("recordEndDate", recordEndDate);
+			let todayDate = new Date();
+			// console.log("recordEndDate",recordEndDate);
+			// console.log("todayDateFormat",todayDateFormat);
+			if (recordEndDate) {
+				// console.log("recordEndDate exist");
+				if (recordEndDate === todayDateFormat) {
+					navToScreen = "TrackingPage";
+					isEvaluationDate = true;
+					this.setState({ dataType: "weather" });
+					[lastMonthWeather, thisMonthWeather, nextMonthWeather] =
+						await this.fetchWeatherInfo(userPlans);
+					// console.log("weather fetched");
+					let weatherFullList = [];
 
-      console.log("Past User-Defined Activities!");
+					for (let weather of lastMonthWeather) {
+						let newWeather = Object.assign({}, weather);
+						
+						if (todayDate.getMonth() - 1 < 0) {
+							newWeather.month = 11;
+						} else {
+							newWeather.month = todayDate.getMonth() - 1;
+						}
+						weatherFullList.push(newWeather);
+					}
+					for (let weather of thisMonthWeather) {
+						let newWeather = Object.assign({}, weather);
+						newWeather.month = todayDate.getMonth();
+						weatherFullList.push(newWeather);
+					}
+					for (let weather of nextMonthWeather) {
+						let newWeather = Object.assign({}, weather);
+						if (todayDate.getMonth() + 1 === 12) {
+							newWeather.month = 0;
+						} else {
+							newWeather.month = todayDate.getMonth() + 1;
+						}
+						weatherFullList.push(newWeather);
+					}
+					// console.log("weather processed");
+					await this.dataModel.updateWeatherInfo(key, weatherFullList);
+				} else {
+					navToScreen = "TrackingPage";
+					this.setState({ dataType: "weather" });
+					let lastMonthWeatherJSON = await SecureStore.getItemAsync(
+						"lastMonthWeather"
+					);
+					let thisMonthWeatherJSON = await SecureStore.getItemAsync(
+						"thisMonthWeather"
+					);
+					let nextMonthWeatherJSON = await SecureStore.getItemAsync(
+						"nextMonthWeather"
+					);
+					
+					lastMonthWeather = JSON.parse(lastMonthWeatherJSON);
+					thisMonthWeather = JSON.parse(thisMonthWeatherJSON);
+					nextMonthWeather = JSON.parse(nextMonthWeatherJSON);
+					// console.log("lastMonthWeather",lastMonthWeather);
+					// console.log("thisMonthWeather",thisMonthWeather);
+					// console.log("nextMonthWeather",nextMonthWeather);
+					// navToScreen = "PlanOnCalendar";
+					// this.setState({ dataType: "weather" });
+					// [lastMonthWeather, thisMonthWeather, nextMonthWeather] =
+					//   await this.fetchWeatherInfo(userPlans);
+					// console.log("weather fetched");
+					// let weatherFullList = [];
 
-      this.setState({ dataType: "user activities" });
-      let userActivityList = await this.dataModel.getUserActivities(key);
-      console.log("userActivityList: ", userActivityList);
-      //Get user's plans made in the app
-      await this.dataModel.loadUserPlans(key);
-      let userPlans = [];
-      userPlans = this.dataModel.getUserPlans();
-      console.log("userPlans: ", userPlans);
+					// for (let weather of lastMonthWeather) {
+					//   let newWeather = Object.assign({}, weather);
+					//   newWeather.month = todayDate.getMonth() - 1;
+					//   weatherFullList.push(newWeather);
+					// }
+					// for (let weather of thisMonthWeather) {
+					//   let newWeather = Object.assign({}, weather);
+					//   newWeather.month = todayDate.getMonth();
+					//   weatherFullList.push(newWeather);
+					// }
+					// for (let weather of nextMonthWeather) {
+					//   let newWeather = Object.assign({}, weather);
+					//   newWeather.month = todayDate.getMonth() + 1;
+					//   weatherFullList.push(newWeather);
+					// }
+					// console.log("weather processed");
+					// await this.dataModel.updateWeatherInfo(key, weatherFullList);
+				}
+			} else {
+				isGuideVis = true;
+				navToScreen = "PlanOnCalendar";
+				this.setState({ dataType: "weather" });
+				[lastMonthWeather, thisMonthWeather, nextMonthWeather] =
+					await this.fetchWeatherInfo(userPlans);
+				console.log("weather fetched");
+				let weatherFullList = [];
 
-      await this.dataModel.loadUserStrategies(key);
-      let userStrategies = this.dataModel.getUserStrategies();
+				for (let weather of lastMonthWeather) {
+					let newWeather = Object.assign({}, weather);
+					if (todayDate.getMonth() - 1 < 0) {
+						newWeather.month = 11;
+					} else {
+						newWeather.month = todayDate.getMonth() - 1;
+					}
+					weatherFullList.push(newWeather);
+				}
+				for (let weather of thisMonthWeather) {
+					let newWeather = Object.assign({}, weather);
+					newWeather.month = todayDate.getMonth();
+					weatherFullList.push(newWeather);
+				}
+				for (let weather of nextMonthWeather) {
+					let newWeather = Object.assign({}, weather);
+					if (todayDate.getMonth() + 1 === 12) {
+						newWeather.month = 0;
+					} else {
+						newWeather.month = todayDate.getMonth() + 1;
+					}
+					weatherFullList.push(newWeather);
+				}
+				console.log("weather processed");
+				await this.dataModel.updateWeatherInfo(key, weatherFullList);
+			}
 
-      let navToScreen = "";
-      //Object: user's basic
-      let userInfo = {
-        key: key,
-        userPlans: userPlans,
-      };
+			//Get weather info from OpenWeather API and it into three lists: lastMonthWeather, thisMonthWeather, nextMonthWeather
 
-      let lastMonthWeather;
-      let thisMonthWeather;
-      let nextMonthWeather;
+			for (let event of userInfo.userPlans) {
+				if (event.end) {
+					if (parseInt(event.end.slice(5, 7)) === todayDate.getMonth() + 1) {
+						for (let weather of thisMonthWeather) {
+							if (parseInt(event.end.slice(8, 10)) === weather.date) {
+								// console.log("weather", weather);
+								event.weather = weather.text;
+								event.temp = weather.temp;
+							}
+						}
+					} else if (parseInt(event.end.slice(5, 7)) === todayDate.getMonth()) {
+						for (let weather of lastMonthWeather) {
+							if (parseInt(event.end.slice(8, 10)) === weather.date) {
+								// console.log("weather", weather);
+								event.weather = weather.text;
+								event.temp = weather.temp;
+							}
+						}
+					}
+				}
+			}
 
-      let todayDateFormat = moment(new Date()).format().slice(0, 10);
-      let recordEndDate = await SecureStore.getItemAsync("END_DATE");
-      console.log("recordEndDate", recordEndDate);
-      let todayDate = new Date();
+			// console.log("userActivityList[0].activityList",userActivityList[0].activityList);
 
-      if (recordEndDate) {
-        if (recordEndDate === todayDateFormat) {
-          navToScreen = "PlanOnCalendar";
-          this.setState({ dataType: "weather" });
-          [lastMonthWeather, thisMonthWeather, nextMonthWeather] =
-            await this.fetchWeatherInfo(userPlans);
-          console.log("weather fetched");
-          let weatherFullList = [];
+			await this.setState({ isLoaderVis: false });
+			this.props.navigation.navigate(navToScreen, {
+				userEmail: emailAddress,
+				userInfo: userInfo,
+				userStrategies: userStrategies,
+				eventsLastMonth: previousMonthList,
+				eventsThisMonth: thisMonthList,
+				eventsNextMonth: nextMonthList,
+				fullEventList: fullEventList,
+				lastMonthWeather: lastMonthWeather,
+				thisMonthWeather: thisMonthWeather,
+				nextMonthWeather: nextMonthWeather,
+				userActivityList: userActivityList[0].activityList,
+				isFromPlanSetUp: false,
+				isEvaluationDate: isEvaluationDate,
+				isGuideVis: isGuideVis,
+			});
+			this.setState({ isLoaderVis: false });
+			console.log("weather updated");
 
-          for (let weather of lastMonthWeather) {
-            let newWeather = Object.assign({}, weather);
-            newWeather.month = todayDate.getMonth() - 1;
-            weatherFullList.push(newWeather);
-          }
-          for (let weather of thisMonthWeather) {
-            let newWeather = Object.assign({}, weather);
-            newWeather.month = todayDate.getMonth();
-            weatherFullList.push(newWeather);
-          }
-          for (let weather of nextMonthWeather) {
-            let newWeather = Object.assign({}, weather);
-            newWeather.month = todayDate.getMonth() + 1;
-            weatherFullList.push(newWeather);
-          }
-          console.log("weather processed");
-          await this.dataModel.updateWeatherInfo(key, weatherFullList);
-        } else {
-          navToScreen = "TrackingPage";
-          this.setState({ dataType: "weather" });
-          let lastMonthWeatherJSON = await SecureStore.getItemAsync(
-            "lastMonthWeather"
-          );
-          let thisMonthWeatherJSON = await SecureStore.getItemAsync(
-            "thisMonthWeather"
-          );
-          let nextMonthWeatherJSON = await SecureStore.getItemAsync(
-            "nextMonthWeather"
-          );
-          lastMonthWeather = JSON.parse(lastMonthWeatherJSON);
-          thisMonthWeather = JSON.parse(thisMonthWeatherJSON);
-          nextMonthWeather = JSON.parse(nextMonthWeatherJSON);
-
-
-
-          // navToScreen = "PlanOnCalendar";
-          // this.setState({ dataType: "weather" });
-          // [lastMonthWeather, thisMonthWeather, nextMonthWeather] =
-          //   await this.fetchWeatherInfo(userPlans);
-          // console.log("weather fetched");
-          // let weatherFullList = [];
-
-          // for (let weather of lastMonthWeather) {
-          //   let newWeather = Object.assign({}, weather);
-          //   newWeather.month = todayDate.getMonth() - 1;
-          //   weatherFullList.push(newWeather);
-          // }
-          // for (let weather of thisMonthWeather) {
-          //   let newWeather = Object.assign({}, weather);
-          //   newWeather.month = todayDate.getMonth();
-          //   weatherFullList.push(newWeather);
-          // }
-          // for (let weather of nextMonthWeather) {
-          //   let newWeather = Object.assign({}, weather);
-          //   newWeather.month = todayDate.getMonth() + 1;
-          //   weatherFullList.push(newWeather);
-          // }
-          // console.log("weather processed");
-          // await this.dataModel.updateWeatherInfo(key, weatherFullList);
-        }
-      } else {
-        console.log("recordEndDate is Null!");
-        navToScreen = "PlanOnCalendar";
-        this.setState({ dataType: "weather" });
-        [lastMonthWeather, thisMonthWeather, nextMonthWeather] =
-          await this.fetchWeatherInfo(userPlans);
-        console.log("weather fetched");
-        let weatherFullList = [];
-
-        for (let weather of lastMonthWeather) {
-          let newWeather = Object.assign({}, weather);
-          newWeather.month = todayDate.getMonth() - 1;
-          weatherFullList.push(newWeather);
-        }
-        for (let weather of thisMonthWeather) {
-          let newWeather = Object.assign({}, weather);
-          newWeather.month = todayDate.getMonth();
-          weatherFullList.push(newWeather);
-        }
-        for (let weather of nextMonthWeather) {
-          let newWeather = Object.assign({}, weather);
-          newWeather.month = todayDate.getMonth() + 1;
-          weatherFullList.push(newWeather);
-        }
-        console.log(weatherFullList);
-        console.log("weather processed");
-        await this.dataModel.updateWeatherInfo(key, weatherFullList);
-        console.log("weather info updated!");
-      }
-
-      //Get weather info from OpenWeather API and it into three lists: lastMonthWeather, thisMonthWeather, nextMonthWeather
-
-      for (let event of userInfo.userPlans) {
-        if (event.end) {
-          if (parseInt(event.end.slice(5, 7)) === todayDate.getMonth() + 1) {
-            for (let weather of thisMonthWeather) {
-              if (parseInt(event.end.slice(8, 10)) === weather.date) {
-                // console.log("weather", weather);
-                event.weather = weather.text;
-                event.temp = weather.temp;
-              }
-            }
-          } else if (parseInt(event.end.slice(5, 7)) === todayDate.getMonth()) {
-            for (let weather of lastMonthWeather) {
-              if (parseInt(event.end.slice(8, 10)) === weather.date) {
-                // console.log("weather", weather);
-                event.weather = weather.text;
-                event.temp = weather.temp;
-              }
-            }
-          }
-        }
-      }
-
-      // console.log("userActivityList[0].activityList",userActivityList[0].activityList);
-
-      console.log("Jumping from BeforeLoginScreen.js to ", navToScreen);
-      await this.setState({ isLoaderVis: false });
-      this.props.navigation.navigate(navToScreen, {
-        userEmail: emailAddress,
-        userInfo: userInfo,
-        userStrategies: userStrategies,
-        eventsLastMonth: previousMonthList,
-        eventsThisMonth: thisMonthList,
-        eventsNextMonth: nextMonthList,
-        fullEventList: fullEventList,
-        lastMonthWeather: lastMonthWeather,
-        thisMonthWeather: thisMonthWeather,
-        nextMonthWeather: nextMonthWeather,
-        userActivityList: userActivityList[0].activityList,
-        isFromPlanSetUp: false
-      });
-      this.setState({ isLoaderVis: false });
-      console.log("weather updated");
-
-      // this.props.navigation.navigate("PlanOnCalendar");
-      // console.log("calendarEventListJSON",calendarEventListJSON);
-    }
-  };
+			// this.props.navigation.navigate("PlanOnCalendar");
+			// console.log("calendarEventListJSON",calendarEventListJSON);
+		}
+	};
   // Get users' calendar events from Google Calendar
   getUsersCalendarEvents = async (
     accessToken,
@@ -306,24 +344,49 @@ export class BeforeLoginScreen extends React.Component {
   };
   // Get the date range for requesting Google Calendar events: default: last month, this month, next month
   processDate = () => {
-    let currDate = new Date();
-    let month = currDate.getMonth();
-    let year = currDate.getFullYear();
-    let monthMin = month;
-    let monthMax = month + 2;
-    if (monthMin < 10) {
-      monthMin = "0" + monthMin;
-    }
-    if (monthMax < 10) {
-      monthMax = "0" + monthMax;
-    }
-    let dateMin = "timeMin=" + year + "-" + monthMin + "-01T10%3A00%3A00Z";
-    let monthDays = moment(year + "-" + monthMax, "YYYY-MM").daysInMonth();
-    let dateMax =
-      "timeMax=" + year + "-" + monthMax + "-" + monthDays + "T23%3A00%3A00Z";
-    console.log("dateMin, dateMax", dateMin, dateMax);
-    return [dateMin, dateMax];
-  };
+		let currDate = new Date();
+		let month = currDate.getMonth();
+		let year = currDate.getFullYear();
+		let monthMin = month;
+		let monthMax;
+		let dateMin
+		if (month + 2 > 12) {
+			monthMax = month + 2 - 12;
+		} else {
+			monthMax = month + 2;
+		}
+
+		if (monthMin < 10) {
+			monthMin = "0" + monthMin;
+			if (monthMin === "00") {
+			    dateMin = "timeMin=" + (year - 1) + "-" + 12 + "-01T10%3A00%3A00Z";
+			} else {
+				dateMin = "timeMin=" + year + "-" + monthMin + "-01T10%3A00%3A00Z";
+			}
+		}
+		if (monthMax < 10) {
+			monthMax = "0" + monthMax;
+		}
+		 
+		let monthDays = moment(year + "-" + monthMax, "YYYY-MM").daysInMonth();
+		let dateMax;
+		if (month + 2 > 12) {
+			dateMax =
+				"timeMax=" +
+				(year + 1) +
+				"-" +
+				monthMax +
+				"-" +
+				monthDays +
+				"T23%3A00%3A00Z";
+		} else {
+			dateMax =
+				"timeMax=" + year + "-" + monthMax + "-" + monthDays + "T23%3A00%3A00Z";
+		}
+
+		// console.log("dateMin, dateMax", dateMin, dateMax);
+		return [dateMin, dateMax];
+	};
   // Process the calendar events into three lists: last month, this month, next month
   processCalEvent = (eventList) => {
     console.log("Processing Cal Events!");
