@@ -45,7 +45,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 //Load interactive component libraries
 import SlidingUpPanel from "rn-sliding-up-panel";
-import ModalSelector from "react-native-modal-selector";
+import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Popover from "react-native-popover-view";
 import Modal from "react-native-modal";
@@ -2163,56 +2163,27 @@ export class PlanOnCalendar extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
-							<ModalSelector
-								style={{ borderWidth: 0, borderRadius: 20 }}
-								// touchableStyle={{ color: "white" }}
-								optionContainerStyle={{
-									borderWidth: 0,
-									backgroundColor: "white",
-									borderColor: "grey",
-									// borderWidth: 2,
-									borderRadius: 15,
-								}}
-								selectStyle={{ borderWidth: 0 }}
-								selectTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								initValueTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
-									backgroundColor: "black",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								backdropPressToClose={true}
-								overlayStyle={{
-									flex: 1,
-									padding: "5%",
-									justifyContent: "center",
-									backgroundColor: "rgba(0,0,0,0)",
-									borderRadius: 20,
-								}}
-								optionTextStyle={{
-									fontWeight: "bold",
-									fontFamily: "RobotoBoldBlack",
-								}}
-								sectionTextStyle={{
-									fontWeight: "bold",
-									fontFamily: "RobotoBoldItalic",
-								}}
-								cancelStyle={{
-									backgroundColor: "black",
-									borderRadius: 15,
-								}}
-								cancelTextStyle={{ fontWeight: "bold", color: "white" }}
-								data={this.state.activityData}
-								initValue={"Select Here"}
-								onChange={async (item) => {
+							<RNPickerSelect
+								style={{
+									inputIOS: {
+									  textAlign: "center",
+									  color: "white",
+									  fontWeight: "bold",
+									  fontSize: 12,
+									  backgroundColor: "black",
+									  borderRadius: 20,
+									},
+									inputAndroid: {
+									  textAlign: "center",
+									  color: "white",
+									  fontWeight: "bold",
+									  fontSize: 12,
+									  backgroundColor: "black",
+									  borderRadius: 20,
+									},
+								  }}
+								placeholder={{ label: "Select Here", value: null }}
+								onValueChange={async (item) => {
 									this.setState({ isActivityTypeSelected: true });
 									this.setState({ selectedActivity: item.label });
 									// await this.activityFilter(item);
