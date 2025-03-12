@@ -116,7 +116,7 @@ export function Login({ navigation }) {
             let dataModel = getDataModel();
 
             const emailTest = "planneregyemailtest@gmail.com";
-            const tempToken = "ya29.a0AeXRPp5a3Tea9DMuA361_AiAv_LMxq5u1-BPGwt_OuD8mCwPXlusF7hxGuU6B7fBtMJzWAbJSH2qFgJuwGBFukpW3b9nh9MwcK3cGtxcsqSpMiIMons0KgYoPwg4mr1bd1GxRyiiaeAC1bsF7p6qSimgH3caFeo7-FgfOhx9aCgYKAfgSARASFQHGX2MijV7GDgs7DSTYLhpKJ4SeCg0175";
+            const tempToken = "ya29.a0AeXRPp4Ymy9qwTr0kmRhleXvE8n6drIor_gpRUFdxCgCKun42-Nnt1egpYmTMXjFZl04P4t4m3030wlQ4lIOPXG0IcTjDUIFqbCXqS_DS4b2BPoMjHhKsAE7oyqYebcsZy3uZ_to9WnAvGkbvz3Bp8FLgPTaWZfTdqWUJuDOaCgYKAXASARASFQHGX2MiozKPJOB_mCL39uTXu3yarg0175";
 
             try {
               let userCreationResult = await dataModel.createNewUser(emailTest);
@@ -158,7 +158,7 @@ export function Login({ navigation }) {
 						labelStyle={{ fontWeight: "bold", fontSize: 15 }}
 						size={Button.sizes.xSmall}
 						onPress={() => {
-							if (clickCount === 5) {
+							if (clickCount === 0) {
 								Alert.alert(
 									"Are you sure you want to reset the records",
 									"Resetting records might affect your tracking data",

@@ -511,7 +511,7 @@ export class BeforeLoginScreen extends React.Component {
       let weatherImgList = {
         date: weather.date.getDate(),
         img: weather.icon,
-        temp: weather.temp,
+        temp: Math.round(weather.temp),
         text: weather.text,
       };
       if (weather.date.getMonth() === today.getMonth()) {
@@ -560,7 +560,7 @@ export class BeforeLoginScreen extends React.Component {
         let newWeatherForecast = {
             date: forecastDate,
             img: weather.weather[0].icon,
-            temp: weather.feels_like.day,
+            temp: Math.round(weather.feels_like.day),
             text: weather.weather[0].main,
         };
     

@@ -159,16 +159,20 @@ export class MonthCalendar extends React.Component {
         maxDays += 1;
       }
     }
+    var rowMax = 6;
+    if (maxDays - (7 - firstDay) > 28) {
+      rowMax = 7;
+    }
     var counter = 1;
     console.log("First day: ", firstDay);
-    for (var row = 0; row < 6; row++) {
+    for (var row = 1; row < rowMax; row++) {
       matrix[row] = [];
       for (var col = 0; col < 7; col++) {
         matrix[row][col] = -1;
-        if (row == 0 && col >= firstDay) {
+        if (row == 1 && col >= firstDay) {
           // Fill in rows only after the first day of the month
           matrix[row][col] = counter++;
-        } else if (row > 0 && counter <= maxDays) {
+        } else if (row > 1 && counter <= maxDays) {
           // Fill in rows only if the counter's not greater than
           // the number of days in the month
           matrix[row][col] = counter++;
@@ -387,7 +391,7 @@ export class MonthCalendar extends React.Component {
                 flex: 1,
                 textAlign: "center",
                 width: 50,
-                height: "70%",
+                height: "90%",
                 //backgroundColor: "blue",
                 flexDirection: "column",
                 alignContent: "space-between",

@@ -2845,6 +2845,7 @@ export class PlanOnCalendar extends React.Component {
 							height: "100%",
 							backgroundColor: "white",
 							marginTop: 4,
+							paddingTop: 20,
 							borderRadius: 20,
 							borderColor: "grey",
 							borderRadius: 2,
@@ -3001,6 +3002,7 @@ export class PlanOnCalendar extends React.Component {
 							height: "90%",
 							backgroundColor: "white",
 							marginTop: 4,
+							paddingTop: 20,
 							borderRadius: 20,
 						},
 					]}>
@@ -3948,16 +3950,16 @@ export class PlanOnCalendar extends React.Component {
 							position: "absolute",
 							right: 15,
 							top: "5%",
-							height: 20,
-							width: 20,
+							height: 22,
+							width: 43,
 							justifyContent: "center",
 							alignItems: "center",
 						}}>
 						<Popover
 							popoverStyle={{ borderRadius: 20 }}
 							from={
-								<TouchableOpacity style={{ marginLeft: "5%" }}>
-									<AntDesign name="infocirlce" size={18} color="black" />
+								<TouchableOpacity style={{ marginLeft: "0%" }}>
+									<AntDesign name="infocirlce" size={22} color="black" />
 								</TouchableOpacity>
 							}>
 							<View
@@ -4459,7 +4461,7 @@ export class PlanOnCalendar extends React.Component {
 														fontSize: 18,
 														fontFamily: "RobotoBoldBlack",
 													}}>
-													{this.selectedTemp}°F
+													{this.selectedTemp ? `${Math.round(parseFloat(this.selectedTemp))}` : '--'}°F
 												</Text>
 											</View>
 										</View>
@@ -4646,7 +4648,7 @@ export class PlanOnCalendar extends React.Component {
 							backgroundColor: "white",
 							marginBottom: 0,
 						}}>
-						<CalendarHeader height={15} width={333} />
+						<CalendarHeader height={15} width={450} />
 						<View
 							style={{
 								height: 145,
