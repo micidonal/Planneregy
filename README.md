@@ -12,7 +12,7 @@
 **Need To Do**
  - *react-native-modal-selector* causing only error, happens on sequential logins, seems to tie back to library being 8+ years old and recent **React** versions affect usability
     - Currently, testing possible solution with library fork, linking it locally and changing code that causes issue (just one line)
- - Application UI formatting (render() sections of code) need slight tweaks, as certain icons have new names (warnings issued) and placement of certain objects out of line, nothing (seems to be) broken here though
+ - (Likely) Some UI Tweaks/Fixes once ModalSelector is done and we can see the whole app (odds are there will be a few spacing issues in the newly available screens)
   
 # How to Test
  - Clone this repo locally
