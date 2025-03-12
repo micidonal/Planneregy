@@ -407,7 +407,7 @@ export class BeforeLoginScreen extends React.Component {
     console.log("event list: ", eventList);
 
     for (let dayEvent of eventList) {
-      console.log("dayEvent.start: ", dayEvent.start);
+      //console.log("dayEvent.start: ", dayEvent.start);
       let timeStamp;
       if (dayEvent.start) {
         //console.log("dayEvent", dayEvent);
@@ -464,7 +464,7 @@ export class BeforeLoginScreen extends React.Component {
       historyDateList.push(yesterday);
     }
 
-    console.log("History Date List: ", historyDateList);
+    //console.log("History Date List: ", historyDateList);
 
     for (let date of historyDateList) {
       date.setHours(date.getHours() - 5);
@@ -484,19 +484,19 @@ export class BeforeLoginScreen extends React.Component {
         }
       }
 
-      console.log("Getting Historical Weather Data!");
+      //console.log("Getting Historical Weather Data!");
       let isoPlanDate = Math.floor(date.getTime() / 1000);
       let weatherHistoryURL = `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${latitude}&lon=${longitude}&dt=${isoPlanDate}&appid=${WEATHER_API_KEY}&units=imperial`;
       this.setState({ dataType: "historical weather" });
       let weatherHistoryResponse = await fetch(weatherHistoryURL);
       let weatherHistoryJSON = await weatherHistoryResponse.json();
 
-      console.log("WEATHER_API_KEY: ",WEATHER_API_KEY);
-      console.log("weatherHistoryJSON: ",weatherHistoryJSON);
+      //console.log("WEATHER_API_KEY: ",WEATHER_API_KEY);
+      //console.log("weatherHistoryJSON: ",weatherHistoryJSON);
 
       if (weatherHistoryJSON.data && weatherHistoryJSON.data.length > 0) {
         let historicalWeatherItem = Object.assign({}, weatherHistoryJSON.data[0]);
-        console.log(historicalWeatherItem); 
+        //console.log(historicalWeatherItem); 
         historicalWeatherItem.date = new Date(weatherHistoryJSON.data[0].dt * 1000);
         historicalWeatherItem.temp = weatherHistoryJSON.data[0].temp;
         historicalWeatherItem.text = weatherHistoryJSON.data[0].weather[0].main;
@@ -506,7 +506,7 @@ export class BeforeLoginScreen extends React.Component {
       }
     }
 
-    console.log("Putting together final historical weather list!");
+    //console.log("Putting together final historical weather list!");
     for (let weather of fullHistoryWeatherList) {
       let weatherImgList = {
         date: weather.date.getDate(),
@@ -551,7 +551,7 @@ export class BeforeLoginScreen extends React.Component {
     let weatherForecastURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,current,alerts&units=imperial&appid=${WEATHER_API_KEY}`;
     let weatherForecastResponse = await fetch(weatherForecastURL);
     let weatherForecastJSON = await weatherForecastResponse.json();
-    console.log("weatherForecastJSON: ", weatherForecastJSON);
+    //console.log("weatherForecastJSON: ", weatherForecastJSON);
     let weatherForecastList = [];
     
     for (let weather of weatherForecastJSON.daily) {
@@ -567,7 +567,7 @@ export class BeforeLoginScreen extends React.Component {
         weatherForecastList.push(newWeatherForecast);
     }
 
-    console.log("Weather Forecast List: ", weatherForecastList);
+    //console.log("Weather Forecast List: ", weatherForecastList);
     
     for (let weather of weatherForecastList) {
         if (weather.date.getMonth() === today.getMonth()) {
@@ -584,9 +584,9 @@ export class BeforeLoginScreen extends React.Component {
         }
     }
     
-    console.log("lastMonthWeather", lastMonthWeather);
-    console.log("thisMonthWeather", thisMonthWeather);
-    console.log("nextMonthWeather", nextMonthWeather);
+    //console.log("lastMonthWeather", lastMonthWeather);
+    //console.log("thisMonthWeather", thisMonthWeather);
+    //console.log("nextMonthWeather", nextMonthWeather);
     return [lastMonthWeather, thisMonthWeather, nextMonthWeather];
   };
   

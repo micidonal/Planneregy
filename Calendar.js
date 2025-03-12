@@ -188,37 +188,37 @@ export class MonthCalendar extends React.Component {
     console.log("Matrix ", matrix);
     var rows = [];
     rows = matrix.map((row, rowIndex) => {
-      console.log("Row ", row);
-      console.log("Row Index ", rowIndex)
+      //console.log("Row ", row);
+      //console.log("Row Index ", rowIndex)
       var rowItems = row.map((item, colIndex) => {
-        console.log("Col ", item);
-        console.log("Col Index ", colIndex);
+        //console.log("Col ", item);
+        //console.log("Col Index ", colIndex);
         let strategyStartDate = new Date(this.props.monthCalStrategyStartDate);
-        console.log("strategyStartDate",strategyStartDate);
+        //console.log("strategyStartDate",strategyStartDate);
         let strategyEndDate = new Date(this.props.monthCalStrategyStartDate);
         strategyEndDate.setDate(strategyEndDate.getDate() + 7);
-        console.log("strategyEndDate",strategyEndDate);
+        //console.log("strategyEndDate",strategyEndDate);
         let todayDate = new Date();
-        console.log("Passed todayDate");
+        //console.log("Passed todayDate");
         let selectedDate = new Date(
           todayDate.getFullYear(),
           this.props.monthCalCurrDate.getMonth(),
           item
         );
-        console.log("Passed selectedDate");
+        //console.log("Passed selectedDate");
         let isWithinStrategy;
         if (
           selectedDate >= strategyStartDate &&
           selectedDate <= strategyEndDate
         ) {
           isWithinStrategy = true;
-          console.log("isWithinStrategy",isWithinStrategy);
+          //console.log("isWithinStrategy",isWithinStrategy);
         } else {
-          console.log("not within");
+          //console.log("not within");
         }
         //Render first row
         if (rowIndex === 0) {
-          console.log("Render First Row");
+          //console.log("Render First Row");
           return (
             <View key={`${rowIndex}-${colIndex}`}
               style={{
@@ -267,16 +267,16 @@ export class MonthCalendar extends React.Component {
           } else {
             dayEventsList = this.state.dayEventsList || [];
           }
-          console.log("else starting");
+          //console.log("else starting");
           for (let dayEvent of dayEventsList) {
-            console.log("dayEvent", dayEvent);
-            console.log("item",item);
+            //console.log("dayEvent", dayEvent);
+            //console.log("item",item);
 
             if (item == dayEvent.dateNum) {
               flatEventListMorning = dayEvent.morningEvents;
               flatEventListAfternoon = dayEvent.afternoonEvents;
 
-              console.log("flatEventList created");
+              //console.log("flatEventList created");
             }
           }
 

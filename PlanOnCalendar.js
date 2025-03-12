@@ -343,6 +343,7 @@ export class PlanOnCalendar extends React.Component {
 		// console.log("this.state.activityData", this.state.activityData);
 	}
 	componentDidMount() {
+		console.log("PC.js Component is mounting...");
 		this.scrollToThisWeek();
 		FlashMessageManager.setDisabled(false);
 		this.setState({ reportTitle: "1" });
@@ -352,6 +353,16 @@ export class PlanOnCalendar extends React.Component {
 		);
 		// console.log("componentDidMount");
 	}
+
+	componentWillUnmount() {
+		console.log("PC.js Component is unmounting...");
+		AppState.removeEventListener("change", this._handleAppStateChange);
+		if (this.focusUnsubscribe) {
+			this.focusUnsubscribe();
+		}
+	}
+
+
 	onFocus = async () => {
 		this.scrollToThisWeek();
 		this.setState({ reportTitle: "0" });
@@ -2163,6 +2174,10 @@ export class PlanOnCalendar extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
+							{(() => {
+								console.log("PC1");
+								return null; // Don't render anything
+							})()}
 							<ModalSelector
 								style={{ borderWidth: 0, borderRadius: 20 }}
 								// touchableStyle={{ color: "white" }}
@@ -2213,10 +2228,13 @@ export class PlanOnCalendar extends React.Component {
 								data={this.state.activityData}
 								initValue={"Select Here"}
 								onChange={async (item) => {
+									console.log('ModalSelector PC1 pre-state');
 									this.setState({ isActivityTypeSelected: true });
 									this.setState({ selectedActivity: item.label });
+									console.log('ModalSelector PC1 post-state');
 									// await this.activityFilter(item);
 								}}
+								animationType="slide"
 							/>
 						</View>
 					</View>
@@ -2942,6 +2960,7 @@ export class PlanOnCalendar extends React.Component {
 												let selectedDay = new Date(
 													moment(item.start).add(1, "d").format("YYYY-MM-DD")
 												);
+												console.log("Set State in PC");
 												this.setState({ selectedDate: selectedDay });
 												this.setState({ dateTimePickerDate: selectedDay });
 											}}>
@@ -3395,6 +3414,10 @@ export class PlanOnCalendar extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
+							{(() => {
+								console.log("General Styles PC2: ", generalStyles.shadowStyle);
+								return null; // Don't render anything
+							})()}
 							<ModalSelector
 								style={{ borderWidth: 0, borderRadius: 20 }}
 								// touchableStyle={{ color: "white" }}
@@ -3446,11 +3469,14 @@ export class PlanOnCalendar extends React.Component {
 								data={this.state.activityData}
 								initValue={this.onReportActivity.title}
 								onChange={async (item) => {
+									console.log('ModalSelector PC2 pre-state');
 									this.setState({ isActivityTypeSelected: true });
 									this.setState({ selectedActivity: item.label });
 									this.setState({ reportTitle: item.label });
+									console.log('ModalSelector PC2 post-state');
 									// await this.activityFilter(item);
 								}}
+								animationType="slide"
 							/>
 						</View>
 					</View>

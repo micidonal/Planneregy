@@ -488,6 +488,7 @@ export class TrackingPage extends React.Component {
 		// }
 	}
 	componentDidMount() {
+		console.log("TP.js Component is mounting...");
 		this._isMounted = true;
 		AppState.addEventListener("change", this._handleAppStateChange);
 		this.scrollToThisWeek();
@@ -518,7 +519,7 @@ export class TrackingPage extends React.Component {
 	}
 
 	componentWillUnmount() {
-		console.log("Component is unmounting...");
+		console.log("TP.js Component is unmounting...");
 		this._isMounted = false;
 		AppState.removeEventListener("change", this._handleAppStateChange);
 		if (this.focusUnsubscribe) {
@@ -528,9 +529,11 @@ export class TrackingPage extends React.Component {
 
 	safeSetState = (newState) => {
 		if (this._isMounted) {
+			console.log("setState during mount:", newState);
 			this.setState(newState);
+		} else {
+			console.log("Prevented setState after unmount:", newState);
 		}
-		console.log("Prevented setState after unmount:", newState);
 	};
 
 	_handleAppStateChange = (nextAppState) => {
@@ -3798,6 +3801,10 @@ export class TrackingPage extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
+								{(() => {
+									console.log("TP1");
+									return null; // Don't render anything
+								})()}
 							<ModalSelector
 								style={{ borderWidth: 0, borderRadius: 20 }}
 								// touchableStyle={{ color: "white" }}
@@ -3850,11 +3857,14 @@ export class TrackingPage extends React.Component {
 								onChange={async (item) => {
 									console.log("activityData:", this.state.activityData);
 									console.log("item:", item);
+									console.log('ModalSelector TP1 pre-state');
 									this.safeSetState({ isActivityTypeSelected: true });
 									this.safeSetState({ selectedActivity: item.label });
+									console.log('ModalSelector TP1 post-state');
 									// this.safeSetState({ reportTitle: item.label})
 									// console.log("item.label",item.label);
 								}}
+								animationType="slide"
 							/>
 						</View>
 					</View>
@@ -8380,7 +8390,7 @@ export class TrackingPage extends React.Component {
 								alignItems: "center",
 							}}>
 								{(() => {
-									console.log("General Styles: ", generalStyles.shadowStyle);
+									console.log("General Styles TP2: ", generalStyles.shadowStyle);
 									return null; // Don't render anything
 								})()}
 							<ModalSelector
@@ -8437,11 +8447,14 @@ export class TrackingPage extends React.Component {
 									console.log("activityData:", this.state.activityData);
 									console.log("initValue:", this.onReportActivity.title);
 									console.log("item:", item);
+									console.log('ModalSelector TP2 pre-state');
 									this.safeSetState({ isActivityTypeSelected: true });
 									this.safeSetState({ selectedActivity: item.label });
 									this.safeSetState({ reportTitle: item.label });
+									console.log('ModalSelector TP2 post-state');
 									// await this.activityFilter(item);
 								}}
+								animationType="slide"
 							/>
 						</View>
 					</View>
@@ -8654,6 +8667,10 @@ export class TrackingPage extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
+								{(() => {
+									console.log("TP3");
+									return null; // Don't render anything
+								})()}
 							<ModalSelector
 								style={{ borderWidth: 0, borderRadius: 20 }}
 								// touchableStyle={{ color: "white" }}
@@ -8706,10 +8723,13 @@ export class TrackingPage extends React.Component {
 								onChange={async (item) => {
 									console.log("activityData:", this.state.activityData);
 									console.log("item:", item);
+									console.log('ModalSelector TP3 pre-state');
 									this.safeSetState({ isActivityTypeSelected: true });
 									this.safeSetState({ selectedActivity: item.label });
+									console.log('ModalSelector TP3 post-state');
 									// await this.activityFilter(item);
 								}}
+								animationType="slide"
 							/>
 						</View>
 					</View>
@@ -8973,7 +8993,7 @@ export class TrackingPage extends React.Component {
 									alignItems: "center",
 								}}>
 								{(() => {
-									console.log("General Styles: ", generalStyles.shadowStyle);
+									console.log("General Styles TP4: ", generalStyles.shadowStyle);
 									return null; // Don't render anything
 								})()}
 								<ModalSelector
@@ -9029,10 +9049,13 @@ export class TrackingPage extends React.Component {
 									onChange={async (item) => {
 										console.log("activityData:", this.state.activityData);
 										console.log("item:", item);
+										console.log('ModalSelector TP4 pre-state');
 										this.safeSetState({ isActivityTypeSelected: true });
 										this.safeSetState({ selectedActivity: item.label });
+										console.log('ModalSelector TP4 post-state');
 										// await this.activityFilter(item);
 									}}
+									animationType="slide"
 								/>
 							</View>
 						</View>
