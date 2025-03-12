@@ -7,11 +7,11 @@
  - Ensure depreciated packages/imports used in the original project still work and any issues can be adjusted for by adjusting import versions and not the code itself
  - Tested the code using Expo ('expo start' or 'npx expo start' depending on imports to local machine) and iPhones (download ExpoGo from AppStore), mostly stable
     - Gets through each .js file at least once, on sequential logins of the same account errors occur (for testing, hit reset button on login screen each time, error discussed below)
+ - *react-native-modal-selector* now uses local version (located in *./local_libs*), no longer a logged error, but App crashes at same point (no error message)
 
    
 **Need To Do**
- - *react-native-modal-selector* causing only error, happens on sequential logins, seems to tie back to library being 8+ years old and recent **React** versions affect usability
-    - Currently, testing possible solution with library fork, linking it locally and changing code that causes issue (just one line)
+ - *selector-paolo* uses different method than this branch (remote **ModalSelector** replacement vs local corrected **ModalSelector**), also no longer errors due to it but now crashes at the exact same spot as as this branch (excatly where the prior **ModalSelector** error occured). Issue unclear, probably tied to TrackingPage.js or new **ModalSelector** usage/replacement (the lack of error message is very odd though)
  - (Likely) Some UI Tweaks/Fixes once ModalSelector is done and we can see the whole app (odds are there will be a few spacing issues in the newly available screens)
   
 # How to Test
