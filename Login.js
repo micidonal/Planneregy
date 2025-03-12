@@ -116,7 +116,7 @@ export function Login({ navigation }) {
             let dataModel = getDataModel();
 
             const emailTest = "planneregyemailtest@gmail.com";
-            const tempToken = "ya29.a0AeXRPp4Ymy9qwTr0kmRhleXvE8n6drIor_gpRUFdxCgCKun42-Nnt1egpYmTMXjFZl04P4t4m3030wlQ4lIOPXG0IcTjDUIFqbCXqS_DS4b2BPoMjHhKsAE7oyqYebcsZy3uZ_to9WnAvGkbvz3Bp8FLgPTaWZfTdqWUJuDOaCgYKAXASARASFQHGX2MiozKPJOB_mCL39uTXu3yarg0175";
+            const tempToken = "ya29.a0AeXRPp4Xnkf4Yp3Lz1uLeQdEKKQT5AP6sH_BFDuoRwIzrDVmwtPFsB7y_guHRhaEe0Qv1lb8EtYAYzocC7kR5hpBLBV8HTvNw5Fui4KSDIxPno4Wc-YInWMoFp_oogBzl572oIr5gm03hd62P1mRXOPFP9-5kIdjxmIKb93LaCgYKAWsSARASFQHGX2MiyBWlMRH5ckUweX87r6w93w0175";
 
             try {
               let userCreationResult = await dataModel.createNewUser(emailTest);
