@@ -23,7 +23,7 @@
     - Go to https://developers.google.com/oauthplayground/
     - Login Credentials:
        - Email: planneregyemailtest@gmail.com
-       - Password: cs460533
+       - Password: CS460533
     - In Step 1, Select the API "https://www.googleapis.com/auth/calendar.readonly" under Google Calendar API v3
     - Hit "Authorize APIs"
     - In Step 2, hit "Exchange authorization code for tokens"
