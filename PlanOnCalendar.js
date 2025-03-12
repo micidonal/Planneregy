@@ -2185,7 +2185,7 @@ export class PlanOnCalendar extends React.Component {
 								placeholder={{ label: "Select Here", value: null }}
 								onValueChange={async (item) => {
 									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
+									this.setState({ selectedActivity: value });
 									// await this.activityFilter(item);
 								}}
 							/>
@@ -3366,61 +3366,63 @@ export class PlanOnCalendar extends React.Component {
 								justifyContent: "center",
 								alignItems: "center",
 							}}>
-							<ModalSelector
-								style={{ borderWidth: 0, borderRadius: 20 }}
-								// touchableStyle={{ color: "white" }}
-								optionContainerStyle={{
-									...generalStyles.shadowStyle,
+							<RNPickerSelect
+								style={{
+									inputIOS: {
+									textAlign: "center",
+									color: "white",
+									fontWeight: "bold",
+									borderRadius: 20,
+									fontSize: 12,
+									backgroundColor: "black",
 									borderWidth: 0,
+									},
+									inputAndroid: {
+									textAlign: "center",
+									color: "white",
+									fontWeight: "bold",
+									borderRadius: 20,
+									fontSize: 12,
+									backgroundColor: "black",
+									borderWidth: 0,
+									},
+									viewContainer: {
+									borderWidth: 0,
+									borderRadius: 20,
+									},
+									placeholder: {
+									textAlign: "center",
+									color: "white",
+									fontWeight: "bold",
+									fontSize: 12,
+									},
+									modalViewMiddle: {
+									...generalStyles.shadowStyle,
 									backgroundColor: "white",
 									borderColor: "grey",
-									// borderWidth: 2,
 									borderRadius: 15,
-								}}
-								selectStyle={{ borderWidth: 0 }}
-								selectTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								initValueTextStyle={{
-									textAlign: "center",
-									color: "white",
-									fontWeight: "bold",
+									borderWidth: 0,
+									},
+									modalViewBottom: {
 									backgroundColor: "black",
-									borderRadius: 20,
-									fontSize: 12,
-								}}
-								backdropPressToClose={true}
-								overlayStyle={{
-									flex: 1,
-									padding: "5%",
-									justifyContent: "center",
-									backgroundColor: "rgba(0,0,0,0)",
-									borderRadius: 20,
-								}}
-								optionTextStyle={{
+									borderRadius: 15,
+									},
+									cancelText: {
+									fontWeight: "bold",
+									color: "white",
+									},
+									itemText: {
 									fontWeight: "bold",
 									fontFamily: "RobotoBoldBlack",
+									},
 								}}
-								sectionTextStyle={{
-									fontWeight: "bold",
-									fontFamily: "RobotoBoldItalic",
-								}}
-								cancelStyle={{
-									backgroundColor: "black",
-									borderRadius: 15,
-								}}
-								cancelTextStyle={{ fontWeight: "bold", color: "white" }}
-								data={this.state.activityData}
-								initValue={this.onReportActivity.title}
-								onChange={async (item) => {
-									this.setState({ isActivityTypeSelected: true });
-									this.setState({ selectedActivity: item.label });
-									this.setState({ reportTitle: item.label });
-									// await this.activityFilter(item);
+								placeholder={{ label: this.onReportActivity.title, value: null }}
+								items={this.state.activityData.map((item) => ({
+									label: item.label,
+									value: item.label,
+								}))}
+								onValueChange={(value) => {
+									this.setState({ isActivityTypeSelected: true, selectedActivity: value, reportTitle: value });
 								}}
 							/>
 						</View>
