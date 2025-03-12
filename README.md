@@ -11,7 +11,7 @@
 
    
 **Need To Do**
- - *selector-paolo* uses different method than this branch (remote **ModalSelector** replacement vs local corrected **ModalSelector**), also no longer errors due to it but now crashes at the exact same spot as as this branch (excatly where the prior **ModalSelector** error occured). Issue unclear, probably tied to TrackingPage.js or new **ModalSelector** usage/replacement (the lack of error message is very odd though)
+ - *selector-paolo* uses different method than this branch (remote **ModalSelector** replacement vs local corrected **ModalSelector**), also no longer errors due to it but now crashes at the exact same spot as this branch (exactly where the prior **ModalSelector** error occured). Issue unclear, probably tied to TrackingPage.js or new **ModalSelector** usage/replacement (the lack of error message is very odd though, hard to debug)
  - (Likely) Some UI Tweaks/Fixes once ModalSelector is done and we can see the whole app (odds are there will be a few spacing issues in the newly available screens)
   
 # How to Test
